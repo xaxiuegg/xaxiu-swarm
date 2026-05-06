@@ -1,7 +1,7 @@
-# agent-swarm v0.2.4 — 3-Parallel Test Run + G31 DEEPSEEK_MODEL Fix
+# xaxiu-swarm v0.2.4 — 3-Parallel Test Run + G31 DEEPSEEK_MODEL Fix
 
 **Date:** 2026-05-06
-**Method:** User requested "test situations where we run 4-8 workers"; ran Tests 5+6+7 simultaneously (3 cohorts in parallel; 18 concurrent agents). User then noticed agent-swarm was hardcoded to `deepseek-chat` instead of their `DEEPSEEK_MODEL=deepseek-v4-pro` env preference. Patched + re-ran decision-heavy dispatches.
+**Method:** User requested "test situations where we run 4-8 workers"; ran Tests 5+6+7 simultaneously (3 cohorts in parallel; 18 concurrent agents). User then noticed xaxiu-swarm was hardcoded to `deepseek-chat` instead of their `DEEPSEEK_MODEL=deepseek-v4-pro` env preference. Patched + re-ran decision-heavy dispatches.
 
 ## Test 5 — 4-worker codemod with worktree merge-back ✓
 
@@ -38,13 +38,13 @@
 
 ## v0.2.4 G31 patch (DEEPSEEK_MODEL env var)
 
-**Bug:** v0.1.0–v0.2.3 hardcoded DeepSeekBackend `default_model = "deepseek-chat"` and never read `DEEPSEEK_MODEL` env var. User's shell had `DEEPSEEK_MODEL=deepseek-v4-pro` (premium) but every agent-swarm DeepSeek dispatch used `deepseek-chat` (base tier). `ask_kimi.py` correctly read the env var, so the orchestrator and the package were using different models on the same machine.
+**Bug:** v0.1.0–v0.2.3 hardcoded DeepSeekBackend `default_model = "deepseek-chat"` and never read `DEEPSEEK_MODEL` env var. User's shell had `DEEPSEEK_MODEL=deepseek-v4-pro` (premium) but every xaxiu-swarm DeepSeek dispatch used `deepseek-chat` (base tier). `ask_kimi.py` correctly read the env var, so the orchestrator and the package were using different models on the same machine.
 
 **Fix:** DeepSeek/Qwen/Claude backends now read `<PROVIDER>_MODEL` env var. Precedence: explicit `model=` arg > env var > class default.
 
 **Verification:**
 ```
-$ python -m agent_swarm.cli dispatch "..." --backend deepseek --json
+$ python -m xaxiu_swarm.cli dispatch "..." --backend deepseek --json
 "model": "deepseek-v4-pro"   ← was "deepseek-chat" in v0.2.3
 ```
 
@@ -64,7 +64,7 @@ $ python -m agent_swarm.cli dispatch "..." --backend deepseek --json
 
 ## v0.2.x cumulative validation surface
 
-| Workload class | Validation | agent-swarm version |
+| Workload class | Validation | xaxiu-swarm version |
 |---|---|---|
 | 1. Cohort audit (parallel hostile review) | V_CONV4d, V_CONV4e, V_CONV4f Cycle 1 | v0.1.0 → v0.2.4 |
 | 2. Research synthesis (papers → meta) | Test 2 | v0.2.2 |

@@ -1,4 +1,4 @@
-"""Claude (Anthropic) backend. Optional — install with `pip install agent-swarm[claude]`.
+"""Claude (Anthropic) backend. Optional — install with `pip install xaxiu-swarm[claude]`.
 
 Reads ANTHROPIC_API_KEY from env. Default model: claude-sonnet-4-6.
 Uses Anthropic SDK directly (not OpenAI-compat) for proper streaming + tool support.
@@ -15,7 +15,7 @@ import os
 from pathlib import Path
 from typing import Any
 
-from agent_swarm.backends.base import Backend, DispatchResult
+from xaxiu_swarm.backends.base import Backend, DispatchResult
 
 
 class ClaudeBackend(Backend):
@@ -77,7 +77,7 @@ class ClaudeBackend(Backend):
                 prompt=prompt,
                 response="",
                 elapsed_s=0.0,
-                error="anthropic package not installed (pip install agent-swarm[claude])",
+                error="anthropic package not installed (pip install xaxiu-swarm[claude])",
                 packet_path=str(packet_path) if packet_path else None,
                 context_files=[str(p) for p in (context_files or [])],
             )

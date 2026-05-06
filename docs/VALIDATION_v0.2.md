@@ -1,4 +1,4 @@
-# agent-swarm v0.2.0 — V_CONV4e Cycle 1 Re-Validation A/B Results
+# xaxiu-swarm v0.2.0 — V_CONV4e Cycle 1 Re-Validation A/B Results
 
 **Date:** 2026-05-06
 **Subject:** V_CONV4e_conveyor_scenario_compare_ui.html (SHA `2d908b47bbf33accad60741e0c6a1ba8cb197ea216743e40985aa0c4868f32ba`; 17,459 lines)

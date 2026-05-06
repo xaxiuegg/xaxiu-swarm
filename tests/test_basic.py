@@ -1,4 +1,4 @@
-"""Smoke tests for agent-swarm. Avoid network/subprocess by stubbing backends."""
+"""Smoke tests for xaxiu-swarm. Avoid network/subprocess by stubbing backends."""
 
 from __future__ import annotations
 
@@ -8,8 +8,8 @@ from pathlib import Path
 
 import pytest
 
-from agent_swarm import Backend, DispatchResult, dispatch, swarm
-from agent_swarm.state import init_state, new_run_id, read_state, update_worker
+from xaxiu_swarm import Backend, DispatchResult, dispatch, swarm
+from xaxiu_swarm.state import init_state, new_run_id, read_state, update_worker
 
 
 class StubBackend(Backend):
@@ -152,7 +152,7 @@ def test_g16_context_files_recorded_in_result(tmp_path):
 
 def test_g16_format_context_files_helper():
     """G16: _format_context_files produces well-formed inlined block."""
-    from agent_swarm.backends.base import Backend
+    from xaxiu_swarm.backends.base import Backend
     import tempfile
 
     with tempfile.TemporaryDirectory() as td:
@@ -170,7 +170,7 @@ def test_g16_format_context_files_helper():
 
 def test_g17_extract_deliverable_path_write_to():
     """G17: 'Write report to <path>' pattern is extracted."""
-    from agent_swarm.dispatch import extract_deliverable_path
+    from xaxiu_swarm.dispatch import extract_deliverable_path
 
     text = "## DELIVERABLE\n\nWrite report to `D:\\Projects\\foo\\bar.md`. WRITE BEFORE EXITING."
     p = extract_deliverable_path(text)
@@ -180,7 +180,7 @@ def test_g17_extract_deliverable_path_write_to():
 
 def test_g17_extract_deliverable_path_notice_form():
     """G17: 'DELIVERABLE NOTICE: `<path>`' pattern is extracted."""
-    from agent_swarm.dispatch import extract_deliverable_path
+    from xaxiu_swarm.dispatch import extract_deliverable_path
 
     text = "## DELIVERABLE NOTICE (PD#26)\n\n`D:\\Projects\\warehouse\\Kimi Download\\report.md`. WRITE BEFORE EXITING."
     p = extract_deliverable_path(text)
@@ -190,7 +190,7 @@ def test_g17_extract_deliverable_path_notice_form():
 
 def test_g17_extract_deliverable_path_no_match():
     """G17: returns None when no pattern matches."""
-    from agent_swarm.dispatch import extract_deliverable_path
+    from xaxiu_swarm.dispatch import extract_deliverable_path
 
     assert extract_deliverable_path("just plain text") is None
     assert extract_deliverable_path("write something somewhere") is None
@@ -286,7 +286,7 @@ def test_g17_disable_auto_deliverable(tmp_path):
 def test_g18_audit_default_max_len_50000(tmp_path):
     """G18: default audit truncation cap is 50000 chars (was 5000 in v0.1.0)."""
     import json
-    from agent_swarm.audit import DEFAULT_AUDIT_MAX_LEN
+    from xaxiu_swarm.audit import DEFAULT_AUDIT_MAX_LEN
 
     assert DEFAULT_AUDIT_MAX_LEN == 50_000
 
@@ -403,7 +403,7 @@ def test_g22_heartbeat_disabled_with_zero_interval(tmp_path):
 
 def test_g26_extract_deliverable_returns_unresolved(tmp_path):
     """G26: extract_deliverable_path returns Path AS-IS (not pre-resolved)."""
-    from agent_swarm.dispatch import extract_deliverable_path
+    from xaxiu_swarm.dispatch import extract_deliverable_path
 
     text = "Write report to `relative/output.md`."
     p = extract_deliverable_path(text)
@@ -415,7 +415,7 @@ def test_g26_extract_deliverable_returns_unresolved(tmp_path):
 
 def test_g26_resolve_deliverable_relative_with_cwd(tmp_path):
     """G26: relative path resolves against provided worker cwd, not process cwd."""
-    from agent_swarm.dispatch import _resolve_deliverable
+    from xaxiu_swarm.dispatch import _resolve_deliverable
 
     rel = Path("output.md")
     worker_cwd = tmp_path / "fake_worktree"
@@ -426,7 +426,7 @@ def test_g26_resolve_deliverable_relative_with_cwd(tmp_path):
 
 def test_g26_resolve_deliverable_absolute_passes_through(tmp_path):
     """G26: absolute paths are unaffected by worker cwd."""
-    from agent_swarm.dispatch import _resolve_deliverable
+    from xaxiu_swarm.dispatch import _resolve_deliverable
 
     abs_path = (tmp_path / "absolute_target.md").resolve()
     worker_cwd = tmp_path / "fake_worktree"
@@ -483,7 +483,7 @@ def test_g30_progress_pings_stderr(tmp_path, capsys):
     captured = capsys.readouterr()
     # During 250ms wait with 50ms beats, expect ~3-4 pings
     assert "still running" in captured.err
-    assert "agent-swarm/stub" in captured.err
+    assert "xaxiu-swarm/stub" in captured.err
     assert res.ok
 
 
@@ -492,7 +492,7 @@ def test_g30_progress_pings_stderr(tmp_path, capsys):
 
 def test_g31_deepseek_backend_reads_env_model(monkeypatch):
     """G31: DeepSeekBackend honors DEEPSEEK_MODEL env var when no explicit model arg."""
-    from agent_swarm.backends.deepseek import DeepSeekBackend
+    from xaxiu_swarm.backends.deepseek import DeepSeekBackend
 
     monkeypatch.setenv("DEEPSEEK_API_KEY", "stub-key")
     monkeypatch.setenv("DEEPSEEK_MODEL", "deepseek-v4-pro")
@@ -502,7 +502,7 @@ def test_g31_deepseek_backend_reads_env_model(monkeypatch):
 
 def test_g31_deepseek_backend_explicit_model_overrides_env(monkeypatch):
     """G31: explicit model= arg overrides DEEPSEEK_MODEL env."""
-    from agent_swarm.backends.deepseek import DeepSeekBackend
+    from xaxiu_swarm.backends.deepseek import DeepSeekBackend
 
     monkeypatch.setenv("DEEPSEEK_API_KEY", "stub-key")
     monkeypatch.setenv("DEEPSEEK_MODEL", "deepseek-v4-pro")
@@ -512,7 +512,7 @@ def test_g31_deepseek_backend_explicit_model_overrides_env(monkeypatch):
 
 def test_g31_deepseek_backend_falls_back_to_class_default(monkeypatch):
     """G31: when no env, no explicit, fall through to class default."""
-    from agent_swarm.backends.deepseek import DeepSeekBackend
+    from xaxiu_swarm.backends.deepseek import DeepSeekBackend
 
     monkeypatch.setenv("DEEPSEEK_API_KEY", "stub-key")
     monkeypatch.delenv("DEEPSEEK_MODEL", raising=False)
@@ -522,7 +522,7 @@ def test_g31_deepseek_backend_falls_back_to_class_default(monkeypatch):
 
 def test_g31_qwen_backend_reads_env_model(monkeypatch):
     """G31 parity: QwenBackend honors QWEN_MODEL env var."""
-    from agent_swarm.backends.qwen import QwenBackend
+    from xaxiu_swarm.backends.qwen import QwenBackend
 
     monkeypatch.setenv("QWEN_API_KEY", "stub-key")
     monkeypatch.setenv("QWEN_MODEL", "qwen/qwen3-235b-coder")
@@ -532,7 +532,7 @@ def test_g31_qwen_backend_reads_env_model(monkeypatch):
 
 def test_g31_claude_backend_reads_env_model(monkeypatch):
     """G31 parity: ClaudeBackend honors ANTHROPIC_MODEL env var."""
-    from agent_swarm.backends.claude import ClaudeBackend
+    from xaxiu_swarm.backends.claude import ClaudeBackend
 
     monkeypatch.setenv("ANTHROPIC_API_KEY", "stub-key")
     monkeypatch.setenv("ANTHROPIC_MODEL", "claude-opus-4-7")
@@ -545,7 +545,7 @@ def test_g31_claude_backend_reads_env_model(monkeypatch):
 
 def test_g32_build_ag1_prompt_includes_verification(tmp_path):
     """G32: built prompt includes the source-trace verification clause by default."""
-    from agent_swarm.ag1 import build_ag1_prompt, DEFAULT_VERIFICATION_CLAUSE
+    from xaxiu_swarm.ag1 import build_ag1_prompt, DEFAULT_VERIFICATION_CLAUSE
 
     p = build_ag1_prompt(
         subject="V_CONV4g Wave 43 hotfix",
@@ -562,7 +562,7 @@ def test_g32_build_ag1_prompt_includes_verification(tmp_path):
 
 def test_g32_build_ag1_prompt_can_disable_verification():
     """G32: passing empty verification_clause disables the source-trace requirement."""
-    from agent_swarm.ag1 import build_ag1_prompt
+    from xaxiu_swarm.ag1 import build_ag1_prompt
 
     p = build_ag1_prompt(
         subject="trivial",
@@ -576,7 +576,7 @@ def test_g32_build_ag1_prompt_can_disable_verification():
 def test_g32_ag1_meta_review_calls_dispatch_with_context(tmp_path):
     """G32: ag1_meta_review forwards cohort_reports + source_files as context_files."""
     import asyncio
-    from agent_swarm.ag1 import ag1_meta_review
+    from xaxiu_swarm.ag1 import ag1_meta_review
 
     class CapturingBackend(StubBackend):
         name = "deepseek"  # treated as API backend for G17 path
@@ -623,7 +623,7 @@ def test_g32_ag1_meta_review_calls_dispatch_with_context(tmp_path):
 def test_g32_ag1_meta_review_no_source_trace_clause(tmp_path):
     """G32: passing empty verification_clause skips the source-trace clause in the prompt."""
     import asyncio
-    from agent_swarm.ag1 import ag1_meta_review
+    from xaxiu_swarm.ag1 import ag1_meta_review
 
     class CapturingBackend(StubBackend):
         name = "deepseek"

@@ -25,11 +25,11 @@ import shutil
 from pathlib import Path
 from typing import Any
 
-from agent_swarm.backends import get_backend
-from agent_swarm.backends.base import Backend, DispatchResult
-from agent_swarm.dispatch import dispatch_async
-from agent_swarm.state import init_state, new_run_id, update_worker
-from agent_swarm.audit import write_audit
+from xaxiu_swarm.backends import get_backend
+from xaxiu_swarm.backends.base import Backend, DispatchResult
+from xaxiu_swarm.dispatch import dispatch_async
+from xaxiu_swarm.state import init_state, new_run_id, update_worker
+from xaxiu_swarm.audit import write_audit
 
 
 async def worktree_swarm(
@@ -241,7 +241,7 @@ async def _git_worktree_set_autocrlf(wt_path: Path, value: str) -> None:
         # Non-fatal: log to stderr but don't kill the run
         import sys
         sys.stderr.write(
-            f"[agent-swarm] warn: failed to set core.autocrlf={value} on "
+            f"[xaxiu-swarm] warn: failed to set core.autocrlf={value} on "
             f"{wt_path}: {err.decode('utf-8', errors='replace')[:200]}\n"
         )
 

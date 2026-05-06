@@ -36,8 +36,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from agent_swarm.dispatch import dispatch_async
-from agent_swarm.backends.base import Backend, DispatchResult
+from xaxiu_swarm.dispatch import dispatch_async
+from xaxiu_swarm.backends.base import Backend, DispatchResult
 
 
 # G32: the verification clause that gets injected into every AG#1 prompt.
@@ -57,7 +57,7 @@ For each cohort finding cited below, you MUST:
   6. Only adjudicate findings that pass source-trace. Do NOT take the
      cohort report's framing at face value.
 
-This requirement was added in agent-swarm v0.3.0 (G32) after the V_CONV4g
+This requirement was added in xaxiu-swarm v0.3.0 (G32) after the V_CONV4g
 hybrid-tier retraction surfaced that chat-tier workers may pattern-extrapolate
 without verifying targets. Without this clause, AG#1 may rubber-stamp
 plausible-sounding but unverified claims.

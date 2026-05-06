@@ -4,9 +4,9 @@ Built-in backends:
     "kimi"     — local Kimi CLI subprocess (zero marginal cost on subscription)
     "deepseek" — OpenAI-compat HTTP API (paid per token; ~$0.27/M in)
     "qwen"     — OpenAI-compat HTTP API (paid; via OpenRouter or DashScope)
-    "claude"   — Anthropic SDK (premium; lazy import — install: agent-swarm[claude])
+    "claude"   — Anthropic SDK (premium; lazy import — install: xaxiu-swarm[claude])
 
-Custom backends: subclass agent_swarm.backends.base.Backend and pass instance
+Custom backends: subclass xaxiu_swarm.backends.base.Backend and pass instance
 directly to dispatch/swarm. The string registry is for convenience only.
 """
 
@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from typing import Callable
 
-from agent_swarm.backends.base import Backend
+from xaxiu_swarm.backends.base import Backend
 
 _REGISTRY: dict[str, Callable[[], Backend]] = {}
 
@@ -24,22 +24,22 @@ def _register(name: str, factory: Callable[[], Backend]) -> None:
 
 
 def _kimi_factory() -> Backend:
-    from agent_swarm.backends.kimi import KimiBackend
+    from xaxiu_swarm.backends.kimi import KimiBackend
     return KimiBackend()
 
 
 def _deepseek_factory() -> Backend:
-    from agent_swarm.backends.deepseek import DeepSeekBackend
+    from xaxiu_swarm.backends.deepseek import DeepSeekBackend
     return DeepSeekBackend()
 
 
 def _qwen_factory() -> Backend:
-    from agent_swarm.backends.qwen import QwenBackend
+    from xaxiu_swarm.backends.qwen import QwenBackend
     return QwenBackend()
 
 
 def _claude_factory() -> Backend:
-    from agent_swarm.backends.claude import ClaudeBackend
+    from xaxiu_swarm.backends.claude import ClaudeBackend
     return ClaudeBackend()
 
 

@@ -6,7 +6,7 @@ Run:
     python examples/basic_dispatch.py
 """
 from pathlib import Path
-from agent_swarm import dispatch
+from xaxiu_swarm import dispatch
 
 
 def main() -> None:

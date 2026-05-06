@@ -12,7 +12,7 @@ Run:
 """
 import asyncio
 from pathlib import Path
-from agent_swarm import swarm, dispatch_async
+from xaxiu_swarm import swarm, dispatch_async
 
 
 async def main() -> None:

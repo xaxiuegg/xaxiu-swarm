@@ -21,7 +21,7 @@ env/
 .coverage
 htmlcov/
 
-# Per-run state (created by agent-swarm itself)
+# Per-run state (created by xaxiu-swarm itself)
 .swarm/runs/
 .swarm/audit/
 

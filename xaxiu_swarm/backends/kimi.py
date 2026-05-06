@@ -25,7 +25,7 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
-from agent_swarm.backends.base import Backend, DispatchResult
+from xaxiu_swarm.backends.base import Backend, DispatchResult
 
 
 # G23: files/dirs under ~/.kimi/ that MUST be copied into isolated HOME so the
@@ -53,7 +53,7 @@ def _prepare_isolated_kimi_home() -> Path:
     Copies auth credentials + config + device identity. Skips logs/sessions
     so workers don't contend on the same files.
     """
-    tmp = Path(tempfile.mkdtemp(prefix="agent-swarm-kimi-home-"))
+    tmp = Path(tempfile.mkdtemp(prefix="xaxiu-swarm-kimi-home-"))
     user_kimi = Path.home() / ".kimi"
     if user_kimi.exists():
         target_kimi = tmp / ".kimi"

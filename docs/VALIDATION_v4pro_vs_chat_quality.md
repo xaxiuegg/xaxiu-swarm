@@ -113,4 +113,4 @@ For 4-8 worker swarms running daily, the additional cost of v4-pro is ~$0.50-$1/
 
 ## Conclusion
 
-The user's intuition was right: agent-swarm v0.1.0–v0.2.3 silently used the lower tier despite the user's `DEEPSEEK_MODEL=deepseek-v4-pro` env preference. v0.2.4 G31 fixes this. The quality difference IS real — pro produces architectural-level audits where chat produces grep-level enumerations. For our cohort + AG#1 work, pro is the right default.
+The user's intuition was right: xaxiu-swarm v0.1.0–v0.2.3 silently used the lower tier despite the user's `DEEPSEEK_MODEL=deepseek-v4-pro` env preference. v0.2.4 G31 fixes this. The quality difference IS real — pro produces architectural-level audits where chat produces grep-level enumerations. For our cohort + AG#1 work, pro is the right default.

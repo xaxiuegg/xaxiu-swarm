@@ -16,7 +16,7 @@ Run:
 """
 import asyncio
 from pathlib import Path
-from agent_swarm import ag1_meta_review
+from xaxiu_swarm import ag1_meta_review
 
 
 async def main() -> None:

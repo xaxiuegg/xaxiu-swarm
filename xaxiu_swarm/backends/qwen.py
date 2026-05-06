@@ -14,8 +14,8 @@ import os
 from pathlib import Path
 from typing import Any
 
-from agent_swarm.backends.base import Backend, DispatchResult
-from agent_swarm.backends.deepseek import DeepSeekBackend
+from xaxiu_swarm.backends.base import Backend, DispatchResult
+from xaxiu_swarm.backends.deepseek import DeepSeekBackend
 
 
 class QwenBackend(DeepSeekBackend):

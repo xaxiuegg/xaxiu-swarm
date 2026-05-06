@@ -1,15 +1,15 @@
-"""agent-swarm CLI.
+"""xaxiu-swarm CLI.
 
-  agent-swarm dispatch <packet|prompt> [--backend NAME] [--timeout S] [--model M]
-  agent-swarm swarm <pkt1> <pkt2> ... [--backends a,b,c] [--max-concurrent N]
-  agent-swarm wt-swarm <pkt1> ... --repo-root PATH [--backends ...] [--cleanup ...]
-  agent-swarm backends                  # list registered backends
+  xaxiu-swarm dispatch <packet|prompt> [--backend NAME] [--timeout S] [--model M]
+  xaxiu-swarm swarm <pkt1> <pkt2> ... [--backends a,b,c] [--max-concurrent N]
+  xaxiu-swarm wt-swarm <pkt1> ... --repo-root PATH [--backends ...] [--cleanup ...]
+  xaxiu-swarm backends                  # list registered backends
 
 Example:
-  agent-swarm dispatch packet.md --backend kimi
-  agent-swarm swarm engineer.md di.md pract.md --backend kimi --max-concurrent 3
-  agent-swarm swarm summarize_a.txt summarize_b.txt --backends deepseek,qwen
-  agent-swarm wt-swarm refactor_x.md refactor_y.md \\
+  xaxiu-swarm dispatch packet.md --backend kimi
+  xaxiu-swarm swarm engineer.md di.md pract.md --backend kimi --max-concurrent 3
+  xaxiu-swarm swarm summarize_a.txt summarize_b.txt --backends deepseek,qwen
+  xaxiu-swarm wt-swarm refactor_x.md refactor_y.md \\
       --repo-root /path/to/repo --backend kimi --cleanup on-success
 """
 
@@ -33,7 +33,7 @@ if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
 
 def _build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
-        prog="agent-swarm",
+        prog="xaxiu-swarm",
         description="Multi-provider agent swarm: Kimi CLI + DeepSeek + Qwen + Claude.",
     )
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -157,7 +157,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     if args.cmd == "backends":
-        from agent_swarm.backends import list_backends
+        from xaxiu_swarm.backends import list_backends
         for n in list_backends():
             print(n)
         return 0
@@ -175,7 +175,7 @@ def main(argv: list[str] | None = None) -> int:
 
 
 def _run_ag1(args) -> int:
-    from agent_swarm.ag1 import ag1_meta_review, DEFAULT_VERIFICATION_CLAUSE
+    from xaxiu_swarm.ag1 import ag1_meta_review, DEFAULT_VERIFICATION_CLAUSE
     audit_dir = None
     if not args.no_audit:
         audit_dir = Path(args.audit_dir) if args.audit_dir else Path(".swarm/audit")
@@ -205,7 +205,7 @@ def _run_ag1(args) -> int:
 
 
 def _run_dispatch(args) -> int:
-    from agent_swarm.dispatch import dispatch
+    from xaxiu_swarm.dispatch import dispatch
     audit_dir = None
     if not args.no_audit:
         audit_dir = Path(args.audit_dir) if args.audit_dir else Path(".swarm/audit")
@@ -235,7 +235,7 @@ def _run_dispatch(args) -> int:
 
 
 def _run_swarm(args) -> int:
-    from agent_swarm.swarm import swarm
+    from xaxiu_swarm.swarm import swarm
     backends = _resolve_backends(args)
     add_dirs = [Path(d) for d in (args.add_dirs or [])]
     context_files = [Path(f) for f in (args.context_files or [])]
@@ -258,7 +258,7 @@ def _run_swarm(args) -> int:
 
 
 def _run_wt_swarm(args) -> int:
-    from agent_swarm.worktree import worktree_swarm
+    from xaxiu_swarm.worktree import worktree_swarm
     backends = _resolve_backends(args)
     add_dirs = [Path(d) for d in (args.add_dirs or [])]
     context_files = [Path(f) for f in (args.context_files or [])]

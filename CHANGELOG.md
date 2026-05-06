@@ -8,8 +8,8 @@ This project follows [SemVer](https://semver.org/spec/v2.0.0.html).
 ## [0.3.0] — 2026-05-06
 
 ### Added
-- **G32 — `ag1_meta_review()` helper + `agent-swarm ag1` CLI subcommand.** Standardizes AG#1 cross-engine adjudication dispatch with auto-injected source-trace verification clause. Addresses the failure mode where chat-tier cohort workers pattern-extrapolate findings without verifying targets, and pro AG#1 rubber-stamps them unless the prompt forces source-trace.
-- New public API: `agent_swarm.ag1_meta_review(subject, cohort_reports, source_files, ...)`.
+- **G32 — `ag1_meta_review()` helper + `xaxiu-swarm ag1` CLI subcommand.** Standardizes AG#1 cross-engine adjudication dispatch with auto-injected source-trace verification clause. Addresses the failure mode where chat-tier cohort workers pattern-extrapolate findings without verifying targets, and pro AG#1 rubber-stamps them unless the prompt forces source-trace.
+- New public API: `xaxiu_swarm.ag1_meta_review(subject, cohort_reports, source_files, ...)`.
 - `DEFAULT_VERIFICATION_CLAUSE` exposed as module constant; opt-out via `verification_clause=""` or CLI `--no-source-trace`.
 
 ### Validated

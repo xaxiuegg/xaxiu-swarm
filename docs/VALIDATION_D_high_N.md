@@ -1,15 +1,15 @@
 # D Validation — High-N stress test (8 Kimi workers)
 
 **Date:** 2026-05-06
-**Test plan reference:** A→B→C→D→E. D exercises agent-swarm `swarm()` at higher concurrency than C1's 3-worker test, validating that G23 (per-worker isolated HOME) holds at N=8.
-**agent-swarm version:** v0.2.1 (G23 + credentials copy)
+**Test plan reference:** A→B→C→D→E. D exercises xaxiu-swarm `swarm()` at higher concurrency than C1's 3-worker test, validating that G23 (per-worker isolated HOME) holds at N=8.
+**xaxiu-swarm version:** v0.2.1 (G23 + credentials copy)
 
 ## Method
 
 8 trivial prompts, each asking Kimi to emit a worker-specific magic phrase: "D stress worker N OK" where N is 1-8.
 
 ```
-agent-swarm swarm \
+xaxiu-swarm swarm \
   .swarm-d-test/prompt_{1..8}.txt \
   --backend kimi --max-concurrent 8 \
   --timeout 120 --max-iterations 3
@@ -46,7 +46,7 @@ $0 (Kimi subscription, zero marginal). Tmpdir overhead per worker: ~18KB (config
 
 ## Conclusion for plan A→B→C→D→E
 
-**🟢 D PASS.** agent-swarm `swarm()` works correctly at N=8 with G23 isolated HOME. swarm() primitive validated for high-concurrency Kimi workloads.
+**🟢 D PASS.** xaxiu-swarm `swarm()` works correctly at N=8 with G23 isolated HOME. swarm() primitive validated for high-concurrency Kimi workloads.
 
 Plan progress:
 - A ✓ (v0.2 G16+G17, validated against V_CONV4e)

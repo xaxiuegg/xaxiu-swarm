@@ -17,11 +17,11 @@ import asyncio
 from pathlib import Path
 from typing import Any
 
-from agent_swarm.audit import write_audit
-from agent_swarm.backends import get_backend
-from agent_swarm.backends.base import Backend, DispatchResult
-from agent_swarm.dispatch import dispatch_async
-from agent_swarm.state import init_state, new_run_id, update_worker
+from xaxiu_swarm.audit import write_audit
+from xaxiu_swarm.backends import get_backend
+from xaxiu_swarm.backends.base import Backend, DispatchResult
+from xaxiu_swarm.dispatch import dispatch_async
+from xaxiu_swarm.state import init_state, new_run_id, update_worker
 
 
 async def swarm(

@@ -2,7 +2,7 @@
 
 Inherited from kimi_dispatch.py CLAUDE.md invariant #1: log every delegation.
 Stored under <state_dir>/audit/<run_id>/<worker_id>.jsonl by default, or
-under .agent-swarm/audit/<timestamp>.jsonl for ad-hoc dispatch() calls.
+under .xaxiu-swarm/audit/<timestamp>.jsonl for ad-hoc dispatch() calls.
 
 v0.2.2 (G18): truncation length is now tunable.
 - Default: 50000 chars (was 5000 — too aggressive; lost 27KB of DI report

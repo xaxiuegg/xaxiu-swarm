@@ -1,4 +1,4 @@
-# agent-swarm
+# xaxiu-swarm
 
 Multi-provider parallel agent dispatch with `asyncio.gather` + git worktree isolation. **Pre-authored packets only**, no auto-decomposition. Three primitives: `dispatch` / `swarm` / `worktree_swarm`. Four backends: Kimi CLI (subscription, zero marginal), DeepSeek (paid HTTP), Qwen (paid HTTP), Claude (premium, optional). Plus `ag1_meta_review` for cross-engine adjudication with source-trace baked in.
 
@@ -8,7 +8,7 @@ Multi-provider parallel agent dispatch with `asyncio.gather` + git worktree isol
 
 ## Why
 
-Parallel agent dispatch is conceptually simple — `asyncio.gather` over N subprocess/API calls — but the production-grade version has surprisingly many sharp edges that get rediscovered every time. agent-swarm packages the lessons:
+Parallel agent dispatch is conceptually simple — `asyncio.gather` over N subprocess/API calls — but the production-grade version has surprisingly many sharp edges that get rediscovered every time. xaxiu-swarm packages the lessons:
 
 - UTF-8 environment hygiene so Kimi doesn't crash on Unicode chars in source files (Windows CP1252 charmap)
 - Per-worker isolated Kimi HOME so concurrent processes don't fight over the shared log file
@@ -18,16 +18,16 @@ Parallel agent dispatch is conceptually simple — `asyncio.gather` over N subpr
 - Worktree isolation primitive for parallel codemod workloads
 - AG#1 cross-engine meta-review helper that auto-injects a source-trace verification clause (so AG#1 doesn't rubber-stamp pattern-extrapolated findings)
 
-This isn't a replacement for LangGraph or CrewAI — those handle DAG dependencies, mid-run checkpointing, complex agent collaboration. agent-swarm is the **parallel-dispatch primitive** for embarrassingly-parallel-with-isolation workloads. ~1500 LoC, no auto-decomp, no DAG, boring and predictable.
+This isn't a replacement for LangGraph or CrewAI — those handle DAG dependencies, mid-run checkpointing, complex agent collaboration. xaxiu-swarm is the **parallel-dispatch primitive** for embarrassingly-parallel-with-isolation workloads. ~1500 LoC, no auto-decomp, no DAG, boring and predictable.
 
 ## Install
 
 ```bash
-pip install agent-swarm
+pip install xaxiu-swarm
 # or with optional Claude support:
-pip install "agent-swarm[claude]"
+pip install "xaxiu-swarm[claude]"
 # or for development:
-pip install "agent-swarm[dev]"
+pip install "xaxiu-swarm[dev]"
 ```
 
 ## Quick start
@@ -36,20 +36,20 @@ pip install "agent-swarm[dev]"
 
 ```bash
 # Single dispatch
-agent-swarm dispatch packet.md --backend kimi
+xaxiu-swarm dispatch packet.md --backend kimi
 
 # 3-way swarm, single backend
-agent-swarm swarm engineer.md di.md pract.md --backend kimi --max-concurrent 3
+xaxiu-swarm swarm engineer.md di.md pract.md --backend kimi --max-concurrent 3
 
 # Mixed-backend swarm (cross-engine diversity → reduces conformity bias)
-agent-swarm swarm engineer.md di.md pract.md --backends kimi,deepseek,qwen
+xaxiu-swarm swarm engineer.md di.md pract.md --backends kimi,deepseek,qwen
 
 # Worktree-isolated parallel codemod
-agent-swarm wt-swarm fix_a.md fix_b.md fix_c.md \
+xaxiu-swarm wt-swarm fix_a.md fix_b.md fix_c.md \
     --repo-root /path/to/repo --backend kimi --cleanup on-success
 
 # AG#1 cross-engine meta-review (G32 source-trace clause auto-injected)
-agent-swarm ag1 \
+xaxiu-swarm ag1 \
     --subject "Wave 42 hotfix" \
     --report engineer.md --report di.md --report pract.md \
     --source v_file.html \
@@ -61,7 +61,7 @@ agent-swarm ag1 \
 
 ```python
 import asyncio
-from agent_swarm import dispatch, swarm, worktree_swarm, ag1_meta_review
+from xaxiu_swarm import dispatch, swarm, worktree_swarm, ag1_meta_review
 
 # Sync single dispatch
 result = dispatch("packet.md", backend="kimi", timeout=1800)
@@ -107,7 +107,7 @@ ag1_result = asyncio.run(ag1_meta_review(
 | `qwen` | Pay-per-token | 50+ via API | `QWEN_API_KEY` or `OPENROUTER_API_KEY`; honors `QWEN_MODEL` env |
 | `claude` | Premium (paid) | Anthropic rate limits | `ANTHROPIC_API_KEY`; optional install |
 
-Custom backends: subclass `agent_swarm.Backend` and pass an instance directly to dispatch/swarm.
+Custom backends: subclass `xaxiu_swarm.Backend` and pass an instance directly to dispatch/swarm.
 
 ## Hybrid tier strategy
 
@@ -115,8 +115,8 @@ Empirically validated: **chat-tier cohort workers + premium-tier AG#1** is cheap
 
 ```bash
 # Hybrid: chat for cohort, pro for AG#1 (recommended for hotfixes / standard waves)
-DEEPSEEK_MODEL=deepseek-chat agent-swarm swarm pkt1.md pkt2.md pkt3.md --backends kimi,deepseek,deepseek
-agent-swarm ag1 --subject "..." --report ... --backend deepseek  # uses DEEPSEEK_MODEL=v4-pro from env
+DEEPSEEK_MODEL=deepseek-chat xaxiu-swarm swarm pkt1.md pkt2.md pkt3.md --backends kimi,deepseek,deepseek
+xaxiu-swarm ag1 --subject "..." --report ... --backend deepseek  # uses DEEPSEEK_MODEL=v4-pro from env
 ```
 
 ## Output artifacts
@@ -145,7 +145,7 @@ See [`docs/`](docs/) for validation reports covering:
 - v0.2.3 4-test workload validation
 - v0.2.4 G31 `<PROVIDER>_MODEL` env var fix + 3-parallel test
 - v4-pro vs deepseek-chat quality A/B (multi-agent conformity bias)
-- agent-swarm vs `kimi_dispatch.py` legacy comparison
+- xaxiu-swarm vs `kimi_dispatch.py` legacy comparison
 
 ## Status
 

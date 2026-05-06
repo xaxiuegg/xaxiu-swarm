@@ -12,9 +12,9 @@ import re
 from pathlib import Path
 from typing import Any
 
-from agent_swarm.audit import write_audit
-from agent_swarm.backends import get_backend
-from agent_swarm.backends.base import Backend, DispatchResult
+from xaxiu_swarm.audit import write_audit
+from xaxiu_swarm.backends import get_backend
+from xaxiu_swarm.backends.base import Backend, DispatchResult
 
 
 # G17: backends without filesystem write capability. dispatch() auto-writes
@@ -155,7 +155,7 @@ async def dispatch_async(
                     raise
                 elapsed = _time.monotonic() - start_t
                 sys.stderr.write(
-                    f"[agent-swarm/{backend_obj.name}] still running, elapsed={elapsed:.0f}s\n"
+                    f"[xaxiu-swarm/{backend_obj.name}] still running, elapsed={elapsed:.0f}s\n"
                 )
                 sys.stderr.flush()
 
@@ -210,7 +210,7 @@ async def dispatch_async(
                 )
 
     if audit_dir is not None:
-        from agent_swarm.audit import DEFAULT_AUDIT_MAX_LEN
+        from xaxiu_swarm.audit import DEFAULT_AUDIT_MAX_LEN
         max_len = audit_max_len if audit_max_len is not None else DEFAULT_AUDIT_MAX_LEN
         name = audit_name or (packet_path.stem if packet_path else "dispatch")
         try:
@@ -218,7 +218,7 @@ async def dispatch_async(
                 audit_dir,
                 f"{backend_obj.name}_{name}",
                 {
-                    "tool": "agent_swarm.dispatch",
+                    "tool": "xaxiu_swarm.dispatch",
                     "backend": result.backend,
                     "model": result.model,
                     "status": result.status,

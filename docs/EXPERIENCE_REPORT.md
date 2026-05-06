@@ -1,17 +1,17 @@
-# agent-swarm — Experience Report
+# xaxiu-swarm — Experience Report
 
 **Operationalizing parallel LLM agent dispatch on a real production project**
 
 **Project:** Maersk Warehouse Planner Pro (single-HTML React SPA; ~17,000 line V-files; wave-based ship + audit cohort discipline)
 **Period:** April 2026 → May 2026
-**Scale:** 9 production waves shipped via agent-swarm; 35 unit tests; 8 distinct workload classes validated; ~$5 in API costs across all validation
+**Scale:** 9 production waves shipped via xaxiu-swarm; 35 unit tests; 8 distinct workload classes validated; ~$5 in API costs across all validation
 **Author:** Anonymized — synthesizing decisions from a multi-month operator-driven session
 
 ---
 
 ## TL;DR (the "if you read nothing else" version)
 
-1. **OMK / auto-decomposition orchestrators are not yet ready** for production multi-agent dispatch on real codebases. Five concrete bugs (G13–G17 catalog) blocked our adoption attempt. We built `agent-swarm` instead — ~1500 LoC, deliberately small, no auto-decomposition, no DAG, just `asyncio.gather` over pre-authored packets with cohort-state tracking.
+1. **OMK / auto-decomposition orchestrators are not yet ready** for production multi-agent dispatch on real codebases. Five concrete bugs (G13–G17 catalog) blocked our adoption attempt. We built `xaxiu-swarm` instead — ~1500 LoC, deliberately small, no auto-decomposition, no DAG, just `asyncio.gather` over pre-authored packets with cohort-state tracking.
 
 2. **Hybrid tier dispatch (cheap-tier cohort + premium-tier AG#1) outperforms all-premium** at 5× lower cost. We empirically verified this on a real defect-finding wave: chat-tier cohort workers' enumerative style produced more raw signal; pro-tier AG#1's source-trace adjudication elevated the right findings to verdicts. All-pro homogenizes too early and risks artificial consensus.
 
@@ -37,7 +37,7 @@ The project is a single-HTML React SPA — a ~17,000-line file that includes JSX
 4. **AG#1** — cross-engine adjudication that synthesizes the cohort verdicts into a final CLEAN/YELLOW/RED
 5. **Commit + push** to `origin/main`
 
-This pattern existed before agent-swarm and was being executed via a combination of:
+This pattern existed before xaxiu-swarm and was being executed via a combination of:
 - `kimi_dispatch.py` — a ~230-LoC Python script wrapping `subprocess.run` of `kimi --quiet --packet <path>`. Battle-tested across many waves.
 - `ask_kimi.py --no-cli` — a ~300-LoC OpenAI-compat wrapper, used for AG#2 / AG#1 via DeepSeek API.
 - 3 parallel Bash background tasks (in our case, via Claude Code's orchestrator tool) when running cohort cycles.
@@ -63,7 +63,7 @@ We catalogued five blocking issues:
 
 We didn't know whether to patch OMK or build our own. The user's call — "If it does not work, let's copy the pattern of the Git instead of cold downloading it. Improving it with our understanding of how kimi swarm work" — chose the latter.
 
-### Designing agent-swarm
+### Designing xaxiu-swarm
 
 The deliberate design rules:
 
@@ -85,11 +85,11 @@ The package shipped its first version (v0.1.0) within a session.
 
 ## Validation: 8 workload classes
 
-Across the next two weeks we deliberately stress-tested agent-swarm across diverse workload shapes. Each class taught us something:
+Across the next two weeks we deliberately stress-tested xaxiu-swarm across diverse workload shapes. Each class taught us something:
 
 ### Class 1: Cohort hostile audit (3-4 parallel review workers)
 
-The original target. ~3-4 workers each reading the same V-file from a different lens (architectural, data-integrity, runtime/UX, occasionally financial) and writing structured Markdown reports. agent-swarm's `swarm()` primitive is built for this: each worker gets the same V-file via `--context-file` (G16) or filesystem read (Kimi), produces a deliverable at a packet-specified path (G17 auto-extracts and writes for API backends), and `swarm.json` tracks all workers in one place.
+The original target. ~3-4 workers each reading the same V-file from a different lens (architectural, data-integrity, runtime/UX, occasionally financial) and writing structured Markdown reports. xaxiu-swarm's `swarm()` primitive is built for this: each worker gets the same V-file via `--context-file` (G16) or filesystem read (Kimi), produces a deliverable at a packet-specified path (G17 auto-extracts and writes for API backends), and `swarm.json` tracks all workers in one place.
 
 Validated waves: V_CONV4d, V_CONV4e, V_CONV4f, V_CONV4g, V_PERF_1, V_DEDUPE_1, V_ERR_1, V_DOC_1, V_LINT_1.
 
@@ -97,11 +97,11 @@ Validated waves: V_CONV4d, V_CONV4e, V_CONV4f, V_CONV4g, V_PERF_1, V_DEDUPE_1, V
 
 Test 2 in our internal validation: 5 research papers (we used our own validation reports as stand-ins), 5 parallel summary workers across mixed backends (2 Kimi + 3 DeepSeek), then 1 meta-synthesis worker reading all 5 summaries.
 
-Result: 6/6 dispatches in ~70s wall, ~$0.10 cost. Meta-synthesizer surfaced 6 substantive open questions about agent-swarm's evolution that became the v0.3 backlog. Confirmed agent-swarm works outside of code-audit contexts.
+Result: 6/6 dispatches in ~70s wall, ~$0.10 cost. Meta-synthesizer surfaced 6 substantive open questions about xaxiu-swarm's evolution that became the v0.3 backlog. Confirmed xaxiu-swarm works outside of code-audit contexts.
 
 ### Class 3: Full wave shipping (SHIP + Cycle 1 + AG#1 via primitives only)
 
-V_CONV4f and V_CONV4g shipped end-to-end via `agent-swarm dispatch` (SHIP), `agent-swarm swarm` (Cycle 1), `agent-swarm ag1` (AG#1) — replacing `kimi_dispatch.py` + `ask_kimi.py` at protocol scope. ~3-7 minute wall time per wave; ~$0.20–0.45 per wave.
+V_CONV4f and V_CONV4g shipped end-to-end via `xaxiu-swarm dispatch` (SHIP), `xaxiu-swarm swarm` (Cycle 1), `xaxiu-swarm ag1` (AG#1) — replacing `kimi_dispatch.py` + `ask_kimi.py` at protocol scope. ~3-7 minute wall time per wave; ~$0.20–0.45 per wave.
 
 ### Class 4: Long-running single dispatch (sustained autonomous work)
 
@@ -144,7 +144,7 @@ We numbered each architectural gap or bug as we discovered it, in chronological 
 | **G24** | C1 worktree test (Kimi editor wrote CRLF; broke SHA verification post-merge) | Low-Medium | After `git worktree add`, run `git -C <wt> config core.autocrlf false`. CLI `--autocrlf <value>` configurable; default `false`. |
 | **G26** | Test 1 (DeepSeek output landed in orchestrator cwd, not worktree) | High | Resolve relative deliverable paths against worker `cwd` kwarg, not `os.getcwd()`. New `_resolve_deliverable(target, worker_cwd)` helper. |
 | **G30** | Test 4 (no liveness signal for bare `dispatch()`) | Medium | `dispatch_async(progress_interval_s=N)` emits stderr heartbeats. CLI default 30s. |
-| **G31** | User noticed agent-swarm using `deepseek-chat` despite `DEEPSEEK_MODEL=deepseek-v4-pro` env | High (silent quality regression) | All API backends honor `<PROVIDER>_MODEL` env var. Precedence: explicit `model=` arg > env var > class default. |
+| **G31** | User noticed xaxiu-swarm using `deepseek-chat` despite `DEEPSEEK_MODEL=deepseek-v4-pro` env | High (silent quality regression) | All API backends honor `<PROVIDER>_MODEL` env var. Precedence: explicit `model=` arg > env var > class default. |
 | **G32** | V_CONV4g retraction case (DI false-positive rubber-stamped by AG#1) | Medium-High | `ag1_meta_review()` helper auto-injects a source-trace verification clause that forces AG#1 to verify each cohort claim against inlined source. |
 
 The full catalog is in [`CHANGELOG.md`](../CHANGELOG.md).
@@ -209,10 +209,10 @@ This generalizes beyond LLM lineage: heterogeneous work styles (concise vs enume
 
 ## What we didn't try (yet)
 
-- **LangGraph + agent-swarm-as-node.** When a workload genuinely needs DAG dependencies (scrape → transform → enrich → load), we'd write a thin LangGraph custom node that calls `agent_swarm.dispatch_async`. Hasn't come up yet.
+- **LangGraph + xaxiu-swarm-as-node.** When a workload genuinely needs DAG dependencies (scrape → transform → enrich → load), we'd write a thin LangGraph custom node that calls `xaxiu_swarm.dispatch_async`. Hasn't come up yet.
 - **Cross-project portability beyond a single test.** We validated portability via a synthetic isolated-venv install (Test E). Real cross-project use will surface things this single test missed.
-- **Production-grade rate-limit handling.** At ~5-8 concurrent Kimi processes we haven't hit rate limits. If we did, agent-swarm currently has no built-in retry-with-backoff (G33 backlog candidate).
-- **Persistent multi-day workflows.** Our waves all complete in one session. Long-running workflows that span days need checkpointing — agent-swarm doesn't have it (deliberately; that's LangGraph/Temporal territory).
+- **Production-grade rate-limit handling.** At ~5-8 concurrent Kimi processes we haven't hit rate limits. If we did, xaxiu-swarm currently has no built-in retry-with-backoff (G33 backlog candidate).
+- **Persistent multi-day workflows.** Our waves all complete in one session. Long-running workflows that span days need checkpointing — xaxiu-swarm doesn't have it (deliberately; that's LangGraph/Temporal territory).
 - **Live multi-turn agent collaboration.** All our workers are one-shot `--print` mode. Interactive multi-step refinement uses a different paradigm.
 
 ---
@@ -221,17 +221,17 @@ This generalizes beyond LLM lineage: heterogeneous work styles (concise vs enume
 
 - [`CHANGELOG.md`](../CHANGELOG.md) — version-by-version evolution
 - [`docs/VALIDATION_*.md`](.) — 8 detailed validation reports across the workload classes
-- [`agent_swarm/`](../agent_swarm) — the Python package, ~1500 LoC end-to-end readable
+- [`xaxiu_swarm/`](../xaxiu_swarm) — the Python package, ~1500 LoC end-to-end readable
 - [`tests/test_basic.py`](../tests/test_basic.py) — 35 unit tests, mostly with `StubBackend` so they run without API keys
 - [`examples/`](../examples) — three minimal scripts: basic dispatch, mixed-backend cohort, AG#1 meta-review
 
-If you're considering adopting this pattern in your own project: read [`docs/VALIDATION_v4pro_vs_chat_quality.md`](VALIDATION_v4pro_vs_chat_quality.md) first (the multi-agent quality A/B is the most surprising finding), then [`docs/VALIDATION_kimi_dispatch_vs_agent_swarm.md`](VALIDATION_kimi_dispatch_vs_agent_swarm.md) (the head-to-head with the legacy approach), then the rest in chronological order.
+If you're considering adopting this pattern in your own project: read [`docs/VALIDATION_v4pro_vs_chat_quality.md`](VALIDATION_v4pro_vs_chat_quality.md) first (the multi-agent quality A/B is the most surprising finding), then [`docs/VALIDATION_kimi_dispatch_vs_xaxiu_swarm.md`](VALIDATION_kimi_dispatch_vs_xaxiu_swarm.md) (the head-to-head with the legacy approach), then the rest in chronological order.
 
 ---
 
 ## Closing thoughts
 
-This package was built reluctantly. We tried OMK twice; we considered LangGraph; we considered patching `kimi_dispatch.py` to add cohort tracking. None of those paths were obviously right at the moment — and in retrospect, building agent-swarm was the right call mainly because **the design constraints were unusually narrow**: pre-authored packets only, no DAG, no checkpointing, just parallel + isolation. That narrow constraint set is what kept the package small enough to read, debug, and patch in real time as we discovered new failure modes.
+This package was built reluctantly. We tried OMK twice; we considered LangGraph; we considered patching `kimi_dispatch.py` to add cohort tracking. None of those paths were obviously right at the moment — and in retrospect, building xaxiu-swarm was the right call mainly because **the design constraints were unusually narrow**: pre-authored packets only, no DAG, no checkpointing, just parallel + isolation. That narrow constraint set is what kept the package small enough to read, debug, and patch in real time as we discovered new failure modes.
 
 The lesson generalizes: when an existing tool is "close but not quite," the question isn't always "patch upstream or fork." Sometimes it's "what would the right tool look like if we had perfect knowledge of the workload?" — and if that imagined tool is much smaller and simpler than the existing one, that's the signal to write it.
 

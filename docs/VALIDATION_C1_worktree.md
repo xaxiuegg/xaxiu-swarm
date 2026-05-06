@@ -1,7 +1,7 @@
 # C1 Validation — `worktree_swarm()` codemod test
 
 **Date:** 2026-05-06
-**Test plan reference:** Plan A→B→C→D→E for agent-swarm validation. C exercises the `worktree_swarm()` primitive (untested in v0.1.0/v0.2.0 prior runs) by dispatching 3 parallel Kimi workers each modifying a different function in the same V-file, with each worker isolated in its own git worktree.
+**Test plan reference:** Plan A→B→C→D→E for xaxiu-swarm validation. C exercises the `worktree_swarm()` primitive (untested in v0.1.0/v0.2.0 prior runs) by dispatching 3 parallel Kimi workers each modifying a different function in the same V-file, with each worker isolated in its own git worktree.
 **Subject:** V_CONV4e (`Planner Versions/V_CONV4e_conveyor_scenario_compare_ui.html`; SHA `2d908b47...`; 17,459 lines)
 
 ## Method
@@ -13,7 +13,7 @@
 
 Invocation:
 ```
-agent-swarm wt-swarm \
+xaxiu-swarm wt-swarm \
   .swarm-c1-test/codemod_{applyEditB,computeHypotheticalConns,pushHistory}.md \
   --repo-root D:/Projects/warehouse \
   --backend kimi --max-concurrent 3 \
@@ -47,12 +47,12 @@ This is not a `worktree_swarm` issue per se — it would affect plain `swarm()` 
 
 ### v0.3 backlog item: G23 — per-worker isolated Kimi HOME
 
-OMK already does this: it sets `HOME=tmpdir` per worker so each Kimi child has its own `~/.kimi/logs/`. agent-swarm Kimi backend currently inherits caller's HOME, leading to contention. Patch:
+OMK already does this: it sets `HOME=tmpdir` per worker so each Kimi child has its own `~/.kimi/logs/`. xaxiu-swarm Kimi backend currently inherits caller's HOME, leading to contention. Patch:
 
 ```python
 # In KimiBackend.dispatch_async, before subprocess spawn:
 import tempfile
-tmp_home = tempfile.mkdtemp(prefix="agent-swarm-kimi-home-")
+tmp_home = tempfile.mkdtemp(prefix="xaxiu-swarm-kimi-home-")
 sub_env["HOME"] = tmp_home
 sub_env["USERPROFILE"] = tmp_home  # Windows
 # (cleanup tmp_home after subprocess returns)
@@ -64,7 +64,7 @@ This would eliminate the log-lock contention observed in C1.
 
 Worker-1's V-file in its worktree has +17KB vs main, which initially looked like corruption. **Diagnosis: CRLF line-ending normalization.** Kimi's editor tool wrote the file with Windows CRLF endings; main has LF. 1 byte × 17,459 lines = ~17KB delta. Content is otherwise identical — no actual corruption, just line-ending difference. Worker-1 had opened the file (which CRLF-normalized it on save) but failed before adding the docstring, so the worktree V-file is "main minus docstring with CRLF".
 
-**This is the same Wave 41 PD candidate** noted earlier — CRLF normalization breaks SHA-based V-file integrity verification on Windows. Future agent-swarm work on V-files should add an explicit "preserve LF endings" instruction to packets, OR Kimi backend should set git config core.autocrlf=false in the worktree.
+**This is the same Wave 41 PD candidate** noted earlier — CRLF normalization breaks SHA-based V-file integrity verification on Windows. Future xaxiu-swarm work on V-files should add an explicit "preserve LF endings" instruction to packets, OR Kimi backend should set git config core.autocrlf=false in the worktree.
 
 ## Worker-2 + worker-3 verification
 
@@ -73,8 +73,8 @@ Both succeeded with exact docstring placements:
 - worker-3 worktree: `// JSDoc: pushHistory` at L7405 ✓
 
 Confirmation files written to `.swarm-c1-test/` in each worktree:
-- `done_computeHypotheticalConns.txt`: "OK computeHypotheticalConns docstring added by agent-swarm-c1-worker-2"
-- `done_pushHistory.txt`: "OK pushHistory docstring added by agent-swarm-c1-worker-3"
+- `done_computeHypotheticalConns.txt`: "OK computeHypotheticalConns docstring added by xaxiu-swarm-c1-worker-2"
+- `done_pushHistory.txt`: "OK pushHistory docstring added by xaxiu-swarm-c1-worker-3"
 
 Both followed packet instructions: relative paths only, single-comment additions, no other modifications, no escape from worktree.
 
