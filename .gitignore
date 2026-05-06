@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+*.egg
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Test / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Per-run state (created by agent-swarm itself)
+.swarm/runs/
+.swarm/audit/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Secrets (defense in depth — none should ever be committed)
+.env
+.env.*
+*.env
+api-keys.*
+secrets.json
+.secrets/
+*.pem
+*.key
