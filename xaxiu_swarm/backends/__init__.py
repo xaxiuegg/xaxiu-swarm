@@ -1,7 +1,12 @@
 """Backend registry. Lazy-imports each backend so optional deps stay optional.
 
 Built-in backends:
-    "kimi"     — local Kimi CLI subprocess (zero marginal cost on subscription)
+    "kimi"     — local Kimi CLI subprocess (zero marginal cost on subscription;
+                 fragile when ~/.kimi credentials/config drift — use kimi-api
+                 for parallel-safe, reproducible dispatches)
+    "kimi-api" — Kimi Coding API HTTP (api.kimi.com/coding/v1; OpenAI-compat;
+                 same subscription quota as kimi CLI; needs KIMI_API_KEY +
+                 User-Agent gate. Recommended for orchestrator-driven dispatch.)
     "deepseek" — OpenAI-compat HTTP API (paid per token; ~$0.27/M in)
     "qwen"     — OpenAI-compat HTTP API (paid; via OpenRouter or DashScope)
     "claude"   — Anthropic SDK (premium; lazy import — install: xaxiu-swarm[claude])
@@ -28,6 +33,11 @@ def _kimi_factory() -> Backend:
     return KimiBackend()
 
 
+def _kimi_api_factory() -> Backend:
+    from xaxiu_swarm.backends.kimi_api import KimiApiBackend
+    return KimiApiBackend()
+
+
 def _deepseek_factory() -> Backend:
     from xaxiu_swarm.backends.deepseek import DeepSeekBackend
     return DeepSeekBackend()
@@ -44,6 +54,8 @@ def _claude_factory() -> Backend:
 
 
 _register("kimi", _kimi_factory)
+_register("kimi-api", _kimi_api_factory)
+_register("kimi_api", _kimi_api_factory)  # alias for shells that don't quote hyphens
 _register("deepseek", _deepseek_factory)
 _register("qwen", _qwen_factory)
 _register("claude", _claude_factory)

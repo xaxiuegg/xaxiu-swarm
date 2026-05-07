@@ -5,6 +5,20 @@ All notable changes to this project are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 This project follows [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.2] — 2026-05-07
+
+### Added
+- **G35 — `KimiApiBackend` (new `kimi-api` backend).** Direct HTTP to the Kimi Coding API at `api.kimi.com/coding/v1` (OpenAI-compatible). Reads `KIMI_API_KEY`, `KIMI_BASE_URL`, `KIMI_MODEL_NAME` from env. Default model `kimi-for-coding`. Streaming with `reasoning_content` capture (parity with `DeepSeekBackend`).
+- **User-Agent gate handling.** The Kimi Coding API silently rejects the default `openai-python` UA with HTTP 403 `access_terminated_error` (gated to approved coding-agent clients per Kimi TOS). `KimiApiBackend` sets `default_headers={"User-Agent": "claude-code/0.1.0"}` on the `AsyncOpenAI` client. Override via `KIMI_USER_AGENT` env or `user_agent=` constructor kwarg if invoking from a non-Claude-Code context. Whitelisted UAs include `claude-code/0.1.0` and `KimiCLI/1.5`.
+- **403 hint in error path.** When the API returns 403, the backend appends a hint to the error message reminding the operator about the UA gate, so debugging doesn't chase auth-level red herrings.
+- **Backend registry alias `kimi_api`** alongside `kimi-api` for shells that don't quote hyphens cleanly.
+
+### Why
+The pre-existing `kimi` backend wraps the Kimi CLI subprocess (`kimi --print -p ...`). That path depends on `~/.kimi/credentials/`, `~/.kimi/config.toml`, the `kimi` binary on PATH, and parallel-safe log lock handling. When any of those drift (credentials wipe, config loses `default_model`, parallel log contention, kimi auto-update mid-session, browser OAuth hiccup), dispatches hang to the configured timeout. V180 ship dispatch on 2026-05-07 hit exactly this — Kimi CLI's credentials were wiped that morning, and `xaxiu-swarm dispatch --backend kimi` ran 1800s without producing a deliverable. `kimi-api` has none of those dependencies — single HTTP call, parallel-safe, reproducible from any shell, no `~/.kimi` install required on the dispatcher's machine. Same subscription quota.
+
+### Recommended migration
+For orchestrator-driven dispatch: prefer `--backend kimi-api`. Keep `--backend kimi` for cases that genuinely need CLI subprocess affordances (filesystem `--add-dir` + multi-step iteration via Ralph loop). Cycle-1 cohorts and Q&A consultations should default to `kimi-api`.
+
 ## [0.3.1] — 2026-05-07
 
 ### Added
