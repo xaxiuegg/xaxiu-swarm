@@ -130,9 +130,13 @@ class DeepSeekBackend(Backend):
             coro = self._call_streaming(
                 client, chosen_model, effective_prompt, max_tokens, temperature
             )
-            response_text, request_tokens, response_tokens = await asyncio.wait_for(
-                coro, timeout=timeout
-            )
+            (
+                response_text,
+                reasoning_text,
+                request_tokens,
+                response_tokens,
+                reasoning_tokens,
+            ) = await asyncio.wait_for(coro, timeout=timeout)
         except asyncio.TimeoutError:
             return DispatchResult(
                 status="timeout",
@@ -167,6 +171,8 @@ class DeepSeekBackend(Backend):
             elapsed_s=self._now() - start,
             request_tokens=request_tokens,
             response_tokens=response_tokens,
+            reasoning_text=reasoning_text,
+            reasoning_tokens=reasoning_tokens,
             packet_path=str(packet_path) if packet_path else None,
             context_files=[str(p) for p in (context_files or [])],
         )
@@ -174,31 +180,61 @@ class DeepSeekBackend(Backend):
     @staticmethod
     async def _call_streaming(
         client, model: str, prompt: str, max_tokens: int, temperature: float
-    ) -> tuple[str, int | None, int | None]:
-        """Stream chunks; return (text, prompt_tokens, completion_tokens).
+    ) -> tuple[str, str | None, int | None, int | None, int | None]:
+        """Stream chunks; return (text, reasoning_text, prompt_tokens,
+        completion_tokens, reasoning_tokens).
 
         Token counts come back only in the final usage chunk; absent on some
         OpenAI-compat servers — fall back to None.
+
+        G34 (v0.3.1) — thinking-mode activation:
+            For deepseek-v4-* models, pass `extra_body={"thinking": {"type":
+            "enabled"}}` per https://api-docs.deepseek.com/guides/thinking_mode .
+            `temperature` is silently ignored when thinking is on, so omit it.
+            Legacy `deepseek-chat`/`deepseek-reasoner` aliases keep prior
+            behavior pending DeepSeek-side deprecation.
+
+        G33 (v0.3.1) — reasoning_content capture:
+            When a thinking model emits `delta.reasoning_content` (chain-of-
+            thought trace), accumulate it separately from `delta.content`. The
+            visible response stays clean (caller sees only the final answer);
+            reasoning is preserved as separate `reasoning_text` for audit-trail
+            evidence. Reasoning token count is read from `usage.completion_
+            tokens_details.reasoning_tokens` when present.
         """
         chunks: list[str] = []
+        reasoning_chunks: list[str] = []
         prompt_tokens: int | None = None
         completion_tokens: int | None = None
-        stream = await client.chat.completions.create(
-            model=model,
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=max_tokens,
-            temperature=temperature,
-            stream=True,
-        )
+        reasoning_tokens: int | None = None
+        create_kwargs: dict[str, Any] = {
+            "model": model,
+            "messages": [{"role": "user", "content": prompt}],
+            "max_tokens": max_tokens,
+            "stream": True,
+        }
+        if "deepseek-v4" in model:
+            create_kwargs["extra_body"] = {"thinking": {"type": "enabled"}}
+        else:
+            create_kwargs["temperature"] = temperature
+        stream = await client.chat.completions.create(**create_kwargs)
         async for event in stream:
             try:
-                delta = event.choices[0].delta.content
-                if delta:
-                    chunks.append(delta)
+                delta = event.choices[0].delta
+                content = getattr(delta, "content", None)
+                if content:
+                    chunks.append(content)
+                rc = getattr(delta, "reasoning_content", None)
+                if rc:
+                    reasoning_chunks.append(rc)
             except (IndexError, AttributeError):
                 pass
             usage = getattr(event, "usage", None)
             if usage is not None:
                 prompt_tokens = getattr(usage, "prompt_tokens", prompt_tokens)
                 completion_tokens = getattr(usage, "completion_tokens", completion_tokens)
-        return "".join(chunks), prompt_tokens, completion_tokens
+                ctd = getattr(usage, "completion_tokens_details", None)
+                if ctd is not None:
+                    reasoning_tokens = getattr(ctd, "reasoning_tokens", reasoning_tokens)
+        reasoning_text = "".join(reasoning_chunks) if reasoning_chunks else None
+        return "".join(chunks), reasoning_text, prompt_tokens, completion_tokens, reasoning_tokens

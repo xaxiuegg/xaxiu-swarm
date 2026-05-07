@@ -50,6 +50,14 @@ class DispatchResult:
     response_tokens: int | None = None
     deliverable_path: str | None = None  # G17: where API-backend response was auto-written
     context_files: list[str] = field(default_factory=list)  # G16: files inlined into prompt
+    # G33 (v0.3.1): chain-of-thought capture for thinking-mode backends. `reasoning_text`
+    # holds the full streamed `delta.reasoning_content` text (DeepSeek v4-flash thinking,
+    # v4-pro). `reasoning_tokens` holds the count from `usage.completion_tokens_details
+    # .reasoning_tokens`. Both `None` when the backend/model didn't emit reasoning.
+    # Added as separate fields so audit jsonl preserves the CoT trace as evidence
+    # without polluting the user-facing `response` text.
+    reasoning_text: str | None = None
+    reasoning_tokens: int | None = None
     extras: dict[str, Any] = field(default_factory=dict)
 
     @property

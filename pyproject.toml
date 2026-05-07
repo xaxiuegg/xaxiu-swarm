@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "xaxiu-swarm"
-version = "0.3.0"
+version = "0.3.1"
 description = "Multi-provider agent swarm orchestration: Kimi CLI + DeepSeek + Qwen + Claude. asyncio.gather + git worktree isolation. Pre-authored packets + AG#1 source-trace meta-review. v0.3.0 (G32): ag1_meta_review() helper + xaxiu-swarm ag1 CLI subcommand auto-injecting source-trace verification clause to prevent rubber-stamping cohort findings."
 readme = "README.md"
 requires-python = ">=3.10"

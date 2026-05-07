@@ -5,6 +5,29 @@ All notable changes to this project are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 This project follows [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] — 2026-05-07
+
+### Added
+- **G33 — `reasoning_text` + `reasoning_tokens` fields on `DispatchResult`.** Captures `delta.reasoning_content` (chain-of-thought trace) from thinking-mode backends as a separate field so the user-facing `response` stays clean while the CoT is preserved for audit-trail evidence. Reasoning token count read from `usage.completion_tokens_details.reasoning_tokens`.
+- **G34 — Thinking-mode activation for `deepseek-v4-*` family.** `DeepSeekBackend._call_streaming` now passes `extra_body={"thinking": {"type": "enabled"}}` for any model whose name contains `"deepseek-v4"` (per https://api-docs.deepseek.com/guides/thinking_mode ). `temperature` is omitted for these models since thinking mode silently ignores it. Legacy `deepseek-chat` / `deepseek-reasoner` aliases keep prior behavior pending DeepSeek-side deprecation.
+
+### Validated (B-pragmatic wave-scale test, 2026-05-07)
+- 5-variant comparison on identical 397K-token prompt (V174 V-file + Engineer Cycle 1 packet):
+  - `deepseek-chat` (no thinking): RED verdict inconsistent with own LOW-only findings (chat-tier false-positive pattern)
+  - `deepseek-reasoner` (default thinking, deprecating): CLEAN ✓
+  - `deepseek-v4-pro` (default thinking): CLEAN ✓; 3.4× more reasoning tokens than reasoner; most architectural
+  - `deepseek-v4-flash` + `{"thinking": {"type": "enabled"}}`: CLEAN-with-backlog ✓; 3,282 reasoning tokens (96% of v4-pro depth)
+  - `deepseek-v4-flash` + `{"thinking": {"type": "disabled"}}`: YELLOW consistent (better than chat alias)
+- **Cost per cohort + AG#1 wave (1 cold + 4 warm calls):**
+  - `deepseek-v4-pro` (current 75% discount): ~$0.20/wave
+  - `deepseek-v4-flash` + thinking: ~$0.067/wave (**67% savings now, ~91% post-2026-05-31 v4-pro discount expiry**)
+- V175 wave 47 cycle 1 was the first wave dispatched with v0.3.1 (in-place patched). DataIntegrity-DeepSeek on `deepseek-v4-flash` + thinking returned full marker-preservation table + mutation parity table + 7-phase CLEAN verdict, matching prior `deepseek-v4-pro` output structure at 1/3 the cost and 3.2× the wall speed (50s vs 162s).
+
+### Deployment notes
+- Set `DEEPSEEK_MODEL=deepseek-v4-flash` in the user's env to flip the default. Backwards-compat preserved: explicit `model=` arg or absent env still works as before.
+- DispatchResult schema additions (`reasoning_text`, `reasoning_tokens`) default to `None` — existing audit-jsonl consumers continue to work; new fields appear only when populated.
+- Quality preserved: `deepseek-v4-flash` + thinking matches v4-pro architectural synthesis depth at flash pricing. The chat-tier RED-false-positive risk is avoided as long as thinking is enabled (verified by A vs E variant divergence in the 5-variant test).
+
 ## [0.3.0] — 2026-05-06
 
 ### Added
