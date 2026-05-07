@@ -16,7 +16,7 @@ from xaxiu_swarm.swarm import swarm
 from xaxiu_swarm.worktree import worktree_swarm
 from xaxiu_swarm.ag1 import ag1_meta_review, build_ag1_prompt, DEFAULT_VERIFICATION_CLAUSE
 
-__version__ = "0.3.0"
+__version__ = "0.3.1"
 
 __all__ = [
     "Backend",
