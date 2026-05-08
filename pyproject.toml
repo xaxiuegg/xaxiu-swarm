@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "xaxiu-swarm"
 version = "0.3.3"
-description = "Multi-provider agent swarm orchestration: Kimi CLI + Kimi Coding API + DeepSeek + Qwen + Claude. asyncio.gather + git worktree isolation. Pre-authored packets + AG#1 source-trace meta-review. v0.3.3 (G36): --no-thinking flag + DEEPSEEK_DISABLE_THINKING env to opt out of v4-* thinking-mode extra_body (v0.3.1 G34 default is harmful for long-input grep-count audits — verified empirically 2026-05-07). v0.3.2 (G35): KimiApiBackend — Kimi Coding API HTTP with User-Agent gate. v0.3.1 (G33+G34): reasoning_text capture + deepseek-v4-* thinking-mode extra_body. v0.3.0 (G32): ag1_meta_review() helper."
+description = "Multi-provider agent swarm orchestration: Kimi CLI + Kimi Coding API + DeepSeek + Qwen + Claude. asyncio.gather + git worktree isolation, pre-authored packets, AG#1 source-trace meta-review. v0.3.3 adds --no-thinking opt-out for DeepSeek v4-* thinking-mode (harmful on long-input grep tasks per the V_HOTFIX_1 A4 ramp test). See CHANGELOG for the full version history."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
