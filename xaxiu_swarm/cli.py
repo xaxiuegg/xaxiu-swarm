@@ -63,6 +63,13 @@ def _build_parser() -> argparse.ArgumentParser:
                          "Useful for long-running single dispatches.")
     pd.add_argument("--prompt", action="store_true",
                     help="Force interpret target as raw prompt (skip file detection).")
+    pd.add_argument("--no-thinking", action="store_true",
+                    help="G36 (v0.3.3): for DeepSeek v4-* models, disable thinking-mode "
+                         "extra_body and pass temperature instead. Use for grep-count audits "
+                         "and any task where reasoning consumes the output budget without "
+                         "producing visible answers (V_HOTFIX_1 A4 ramp test 2026-05-07). "
+                         "Equivalent to setting DEEPSEEK_DISABLE_THINKING=1 in env. No-op "
+                         "for non-DeepSeek backends and for legacy deepseek-chat alias.")
     pd.add_argument("--json", action="store_true", help="Print result as JSON.")
 
     # swarm
@@ -87,6 +94,8 @@ def _build_parser() -> argparse.ArgumentParser:
                     help="G22: heartbeat interval in seconds for swarm.json liveness updates (0 to disable).")
     ps.add_argument("--state-dir", default=".swarm/runs")
     ps.add_argument("--run-id", default=None)
+    ps.add_argument("--no-thinking", action="store_true",
+                    help="G36 (v0.3.3): disable DeepSeek v4-* thinking-mode for ALL workers.")
     ps.add_argument("--json", action="store_true")
 
     # wt-swarm
@@ -118,6 +127,8 @@ def _build_parser() -> argparse.ArgumentParser:
     pw.add_argument("--base-ref", default="HEAD")
     pw.add_argument("--cleanup", default="on-success",
                     choices=["always", "on-success", "never"])
+    pw.add_argument("--no-thinking", action="store_true",
+                    help="G36 (v0.3.3): disable DeepSeek v4-* thinking-mode for ALL workers.")
     pw.add_argument("--json", action="store_true")
 
     sub.add_parser("backends", help="List registered backends.")
@@ -226,6 +237,7 @@ def _run_dispatch(args) -> int:
         deliverable_path=args.deliverable,
         auto_deliverable=not args.no_auto_deliverable,
         progress_interval_s=args.progress,
+        disable_thinking=args.no_thinking,  # G36 (v0.3.3): no-op for non-DeepSeek backends
     )
     if args.json:
         print(json.dumps(res.to_dict(), indent=2))
@@ -253,6 +265,7 @@ def _run_swarm(args) -> int:
         add_dirs=add_dirs,
         context_files=context_files,
         auto_deliverable=not args.no_auto_deliverable,
+        disable_thinking=args.no_thinking,  # G36 (v0.3.3)
     ))
     return _emit_swarm(results, args.json)
 
@@ -281,6 +294,7 @@ def _run_wt_swarm(args) -> int:
         add_dirs=add_dirs,
         context_files=context_files,
         auto_deliverable=not args.no_auto_deliverable,
+        disable_thinking=args.no_thinking,  # G36 (v0.3.3)
     ))
     return _emit_swarm(results, args.json)
 

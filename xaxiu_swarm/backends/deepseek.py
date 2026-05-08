@@ -28,6 +28,7 @@ class DeepSeekBackend(Backend):
         max_tokens: int = 16384,
         temperature: float = 0.3,
         model: str | None = None,
+        disable_thinking: bool | None = None,
     ) -> None:
         self.api_key = api_key or os.environ.get("DEEPSEEK_API_KEY")
         self.base_url = base_url or os.environ.get(
@@ -46,6 +47,20 @@ class DeepSeekBackend(Backend):
             env_model = os.environ.get("DEEPSEEK_MODEL")
             if env_model:
                 self.default_model = env_model
+        # v0.3.3 (G36): disable_thinking opt-out for v4-* models. The G34 default
+        # (extra_body={"thinking":{"type":"enabled"}} for any deepseek-v4 model)
+        # is HARMFUL on long-input grep-count tasks: reasoning consumes 100% of
+        # output budget, visible answer never surfaces (V_HOTFIX_1 A4 test
+        # 2026-05-07: 16,384/16,384 reasoning_tok, 0 visible chars, 0/10 correct
+        # at 209s). For audit dispatches that just need fast count interpretation
+        # rather than deep reasoning, callers should pass disable_thinking=True
+        # OR set DEEPSEEK_DISABLE_THINKING=1 in env.
+        # Precedence: explicit constructor arg > env var > default (None=auto).
+        if disable_thinking is not None:
+            self.disable_thinking = bool(disable_thinking)
+        else:
+            env_val = os.environ.get("DEEPSEEK_DISABLE_THINKING", "").strip().lower()
+            self.disable_thinking = env_val in ("1", "true", "yes", "y", "on")
 
     async def dispatch_async(
         self,
@@ -124,11 +139,20 @@ class DeepSeekBackend(Backend):
         chosen_model = model or self.default_model
         max_tokens = int(kwargs.get("max_tokens", self.max_tokens))
         temperature = float(kwargs.get("temperature", self.temperature))
+        # v0.3.3 (G36): per-call override beats instance default. Caller can pass
+        # `disable_thinking=True` in kwargs to force-omit extra_body even on a
+        # backend instance that has thinking enabled by default. None = inherit.
+        per_call_disable = kwargs.get("disable_thinking")
+        if per_call_disable is None:
+            disable_thinking = self.disable_thinking
+        else:
+            disable_thinking = bool(per_call_disable)
 
         start = self._now()
         try:
             coro = self._call_streaming(
-                client, chosen_model, effective_prompt, max_tokens, temperature
+                client, chosen_model, effective_prompt, max_tokens, temperature,
+                disable_thinking=disable_thinking,
             )
             (
                 response_text,
@@ -179,7 +203,8 @@ class DeepSeekBackend(Backend):
 
     @staticmethod
     async def _call_streaming(
-        client, model: str, prompt: str, max_tokens: int, temperature: float
+        client, model: str, prompt: str, max_tokens: int, temperature: float,
+        disable_thinking: bool = False,
     ) -> tuple[str, str | None, int | None, int | None, int | None]:
         """Stream chunks; return (text, reasoning_text, prompt_tokens,
         completion_tokens, reasoning_tokens).
@@ -193,6 +218,15 @@ class DeepSeekBackend(Backend):
             `temperature` is silently ignored when thinking is on, so omit it.
             Legacy `deepseek-chat`/`deepseek-reasoner` aliases keep prior
             behavior pending DeepSeek-side deprecation.
+
+        G36 (v0.3.3) — `disable_thinking` opt-out:
+            When True, omit `extra_body` even for deepseek-v4-* models and pass
+            `temperature` instead. Use for grep-count audits and any task where
+            thinking-channel reasoning consumes the output budget without
+            producing visible answers (V_HOTFIX_1 A4 ramp test 2026-05-07
+            measured 100% reasoning-tok/budget consumption at 8K and 16K on a
+            395K-input grep task with thinking ON; visible-answer never
+            surfaced; finish_reason=length at every budget tier).
 
         G33 (v0.3.1) — reasoning_content capture:
             When a thinking model emits `delta.reasoning_content` (chain-of-
@@ -213,9 +247,12 @@ class DeepSeekBackend(Backend):
             "max_tokens": max_tokens,
             "stream": True,
         }
-        if "deepseek-v4" in model:
+        if "deepseek-v4" in model and not disable_thinking:
             create_kwargs["extra_body"] = {"thinking": {"type": "enabled"}}
         else:
+            # Either non-v4 model OR explicit opt-out. Pass temperature in both
+            # cases — v4 models accept it when thinking is disabled, and legacy
+            # aliases require it.
             create_kwargs["temperature"] = temperature
         stream = await client.chat.completions.create(**create_kwargs)
         async for event in stream:

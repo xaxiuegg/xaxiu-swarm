@@ -5,6 +5,67 @@ All notable changes to this project are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 This project follows [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.3] — 2026-05-07
+
+### Added
+- **G36 — `--no-thinking` CLI flag + `disable_thinking` constructor kwarg + `DEEPSEEK_DISABLE_THINKING` env.** Opt out of the v0.3.1 G34 default (`extra_body={"thinking":{"type":"enabled"}}` for any `deepseek-v4-*` model). Available on `xaxiu-swarm dispatch / swarm / wt-swarm` subcommands; per-call override via `dispatch(..., disable_thinking=True)`; instance default via `DeepSeekBackend(disable_thinking=True)` or `DEEPSEEK_DISABLE_THINKING=1` env. No-op for non-DeepSeek backends and for legacy `deepseek-chat` alias (which never had thinking via extra_body).
+
+### Why
+2026-05-07 V_HOTFIX_1 A4 ramp tests on V179 (10-pattern literal-substring grep-count task; in_tok=395,367; ground truth verified via shell grep). Both DeepSeek v4-flash AND v4-pro have 1M context per docs, so the input is well within budget. The pathology is in the output / reasoning channel:
+
+| model | budget | finish | reason_tok | out_tok | correct | latency |
+|---|---|---|---|---|---|---|
+| v4-flash thinking | 8K | length | 8,192 | 8,192 | 0/10 | 108s |
+| v4-flash thinking | 16K | length | 16,384 | 16,384 | 0/10 | 209s |
+| v4-flash thinking | 24K+ | TIMEOUT | — | — | — | >300s |
+| **v4-pro thinking** | **16K** | **length** | **16,384** | **16,384** | **0/10** | **414s** |
+| **v4-pro thinking** | **32K** | **stop** | **30,015** | **30,083** | **1/10** | **750s** |
+| v4-flash no-thinking | 8K | stop | — | 68 | 0/10 | 4s |
+
+Pattern (shared across v4-flash and v4-pro thinking): 100% of the output budget is consumed by the reasoning channel; visible answer never surfaces at modest budgets. Increasing the budget gives more reasoning room — v4-pro at 32K eventually finishes cleanly (finish=stop) but the answer quality is still poor (`setSettings(` returned 88 vs ground truth 18; `useEffect(` returned 48 vs 68). The bigger reasoning capacity DOES NOT make the model better at counting; it just lets it run longer before bailing.
+
+For audit dispatches that just need fast count interpretation rather than deep reasoning, the thinking-mode default is actively HARMFUL on long inputs:
+- v4-flash thinking at 16K: 209s wall time; zero visible output
+- v4-pro thinking at 16K: 414s wall time (2× v4-flash); zero visible output
+- v4-pro thinking at 32K: 750s wall time (12.5 min); 1/10 with wide errors
+- v4-flash no-thinking at 8K: 4s; zero correct but at least produces output a human can cross-check
+
+The G36 fix preserves G34's default behavior (thinking ON for v4-* unless opted out) — no breaking change. The opt-out path is explicit and documented.
+
+### Use case examples
+```bash
+# Default: thinking ON for v4-* (v0.3.1 G34 behavior)
+xaxiu-swarm dispatch packet.md --backend deepseek --model deepseek-v4-flash
+
+# Opt-out: thinking OFF for grep-count audit
+xaxiu-swarm dispatch grep-audit.md --backend deepseek --model deepseek-v4-flash --no-thinking
+xaxiu-swarm dispatch grep-audit.md --backend deepseek --model deepseek-v4-pro   --no-thinking
+
+# Opt-out via env (applies to all calls in shell)
+export DEEPSEEK_DISABLE_THINKING=1
+xaxiu-swarm dispatch packet.md --backend deepseek
+```
+
+### Companion finding — Kimi parity (NOT shipping; documented only)
+Kimi `kimi-for-coding` test on a 400KB V179 slice (in_tok=127,156 — Kimi's 262K context limit prevented running on the full 395K prompt; HTTP 400 returned for oversize input):
+- max_tokens=8K  → finish=length, reasoning_chars=27,762, visible 0, correct 0/10, 212s
+- max_tokens=16K → finish=stop,   reasoning_chars=41,961, visible 126 chars, correct 6/10, 347s
+
+Kimi exhibits the same 8K-budget pathology (thinking consumes all output) but recovers cleanly at 16K with off-by-one errors on hooks (useState 18 vs 19; useEffect 16 vs 17; useRef 9 vs 10). Different input size from the DeepSeek tests, so not directly comparable, but: Kimi at 16K (6/10 with structurally close errors) outperforms v4-pro at 32K (1/10 with wide errors) on this class of task.
+
+The Kimi Coding API does NOT expose a thinking-mode toggle via the OpenAI-compat surface — `kimi-for-coding` is the only documented model and is thinking-by-default. So the G36 flag's wire-level scope is DeepSeek-only.
+
+### What this DOES NOT prove
+- It does NOT prove engines can't grep-count in general — only that on this particular long-input task class, thinking-mode is structurally inefficient. Smaller inputs (~30K-50K tokens) might work better with thinking; not tested here.
+- It does NOT prove v4-pro is "worse" than v4-flash. v4-pro can still be the right tier for hard reasoning on short inputs (snail-pole-class problems). It's just not better than v4-flash at grep-counting.
+
+### Recommended migration
+Audit cohorts that rely on engine grep-counting (DataIntegrity-class verifying marker counts, mutation parity, etc.) should EITHER:
+  1. Switch to `--no-thinking` to get fast non-thinking responses on `deepseek-v4-*` (still inaccurate but produces visible output for the human reviewer to cross-check), OR
+  2. Have the orchestrator pre-compute counts via shell `grep` and inline them into the dispatch packet; engine's role becomes interpretation only (cross-check, flag anomalies, tabulate verdicts) — the V181+ canonical pattern.
+
+Path 2 is more reliable; path 1 is the immediate quick-fix that this release enables.
+
 ## [0.3.2] — 2026-05-07
 
 ### Added
