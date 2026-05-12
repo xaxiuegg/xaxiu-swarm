@@ -17,6 +17,28 @@ from typing import Any
 from xaxiu_swarm.backends.base import Backend, DispatchResult
 
 
+def _select_api_key(passed: str | None) -> str | None:
+    """Select an API key for this dispatch.
+
+    Precedence:
+      1. Explicit `passed` (constructor arg) — wins, no pool consulted.
+      2. `DEEPSEEK_API_KEYS` env (CSV pool) — random.choice across entries.
+      3. `DEEPSEEK_API_KEY` env (single, back-compat) — included in pool above
+         if the pool is empty, else appended for full pool coverage.
+
+    Returns None if no key is configured anywhere.
+    """
+    import random
+    if passed:
+        return passed
+    pool_csv = os.environ.get("DEEPSEEK_API_KEYS", "")
+    pool = [k.strip() for k in pool_csv.split(",") if k.strip()]
+    single = os.environ.get("DEEPSEEK_API_KEY")
+    if single and single not in pool:
+        pool.append(single)
+    return random.choice(pool) if pool else None
+
+
 class DeepSeekBackend(Backend):
     name = "deepseek"
     default_model = "deepseek-chat"
@@ -30,7 +52,7 @@ class DeepSeekBackend(Backend):
         model: str | None = None,
         disable_thinking: bool | None = None,
     ) -> None:
-        self.api_key = api_key or os.environ.get("DEEPSEEK_API_KEY")
+        self.api_key = _select_api_key(api_key)
         self.base_url = base_url or os.environ.get(
             "DEEPSEEK_BASE_URL", "https://api.deepseek.com/v1"
         )
@@ -74,6 +96,7 @@ class DeepSeekBackend(Backend):
         max_iterations: int = 20,
         add_dirs: list[Path] | None = None,
         context_files: list[Path] | None = None,
+        image_paths: list[Path] | None = None,  # Phase 2: TODO multimodal
         **kwargs: Any,
     ) -> DispatchResult:
         if not self.api_key:

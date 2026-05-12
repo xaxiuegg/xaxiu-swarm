@@ -94,6 +94,7 @@ class Backend(abc.ABC):
         max_iterations: int = 20,
         add_dirs: list[Path] | None = None,
         context_files: list[Path] | None = None,
+        image_paths: list[Path] | None = None,
         **kwargs: Any,
     ) -> DispatchResult:
         """Run one dispatch. Must not raise. Always returns a DispatchResult.

@@ -63,6 +63,10 @@ def _build_parser() -> argparse.ArgumentParser:
                          "Useful for long-running single dispatches.")
     pd.add_argument("--prompt", action="store_true",
                     help="Force interpret target as raw prompt (skip file detection).")
+    pd.add_argument("--image", action="append", default=[], dest="images",
+                    help="Path to an image file (PNG/JPEG/WebP) to attach to the prompt. "
+                         "Repeatable for multiple images. Phase 1: Kimi-API backend only; "
+                         "other backends accept the flag but ignore images.")
     pd.add_argument("--no-thinking", action="store_true",
                     help="G36 (v0.3.3): for DeepSeek v4-* models, disable thinking-mode "
                          "extra_body and pass temperature instead. Use for grep-count audits "
@@ -238,6 +242,7 @@ def _run_dispatch(args) -> int:
         auto_deliverable=not args.no_auto_deliverable,
         progress_interval_s=args.progress,
         disable_thinking=args.no_thinking,  # G36 (v0.3.3): no-op for non-DeepSeek backends
+        image_paths=[Path(p) for p in (args.images or [])],
     )
     if args.json:
         print(json.dumps(res.to_dict(), indent=2))

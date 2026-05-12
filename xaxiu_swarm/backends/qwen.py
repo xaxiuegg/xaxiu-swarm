@@ -63,6 +63,7 @@ class QwenBackend(DeepSeekBackend):
         max_iterations: int = 20,
         add_dirs: list[Path] | None = None,
         context_files: list[Path] | None = None,
+        image_paths: list[Path] | None = None,  # Phase 2: TODO multimodal
         **kwargs: Any,
     ) -> DispatchResult:
         if not self.api_key:

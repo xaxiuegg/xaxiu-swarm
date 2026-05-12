@@ -99,6 +99,7 @@ class KimiBackend(Backend):
         max_iterations: int = 20,
         add_dirs: list[Path] | None = None,
         context_files: list[Path] | None = None,
+        image_paths: list[Path] | None = None,  # Phase 2: TODO multimodal
         **kwargs: Any,
     ) -> DispatchResult:
         # If packet_path is given, build directive prompt (Wave 36c large-packet fix).

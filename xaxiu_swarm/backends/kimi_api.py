@@ -49,6 +49,28 @@ from typing import Any
 from xaxiu_swarm.backends.base import Backend, DispatchResult
 
 
+def _select_api_key(passed: str | None) -> str | None:
+    """Select an API key for this dispatch.
+
+    Precedence:
+      1. Explicit `passed` (constructor arg) — wins, no pool consulted.
+      2. `KIMI_API_KEYS` env (CSV pool) — random.choice across entries.
+      3. `KIMI_API_KEY` env (single, back-compat) — included in pool above
+         if the pool is empty, else appended for full pool coverage.
+
+    Returns None if no key is configured anywhere.
+    """
+    import random
+    if passed:
+        return passed
+    pool_csv = os.environ.get("KIMI_API_KEYS", "")
+    pool = [k.strip() for k in pool_csv.split(",") if k.strip()]
+    single = os.environ.get("KIMI_API_KEY")
+    if single and single not in pool:
+        pool.append(single)
+    return random.choice(pool) if pool else None
+
+
 # Whitelisted User-Agent values per Kimi docs + community (verified 2026-05-07).
 # `claude-code/0.1.0` is the truthful identifier when xaxiu-swarm is invoked
 # from a Claude Code orchestration context.
@@ -68,7 +90,7 @@ class KimiApiBackend(Backend):
         model: str | None = None,
         user_agent: str | None = None,
     ) -> None:
-        self.api_key = api_key or os.environ.get("KIMI_API_KEY")
+        self.api_key = _select_api_key(api_key)
         self.base_url = base_url or os.environ.get(
             "KIMI_BASE_URL", "https://api.kimi.com/coding/v1"
         )
@@ -102,6 +124,7 @@ class KimiApiBackend(Backend):
         max_iterations: int = 20,
         add_dirs: list[Path] | None = None,
         context_files: list[Path] | None = None,
+        image_paths: list[Path] | None = None,
         **kwargs: Any,
     ) -> DispatchResult:
         if not self.api_key:
@@ -178,7 +201,8 @@ class KimiApiBackend(Backend):
         start = self._now()
         try:
             coro = self._call_streaming(
-                client, chosen_model, effective_prompt, max_tokens, temperature
+                client, chosen_model, effective_prompt, max_tokens, temperature,
+                image_paths=image_paths,
             )
             (
                 response_text,
@@ -239,7 +263,8 @@ class KimiApiBackend(Backend):
 
     @staticmethod
     async def _call_streaming(
-        client, model: str, prompt: str, max_tokens: int, temperature: float
+        client, model: str, prompt: str, max_tokens: int, temperature: float,
+        image_paths: list[Path] | None = None,
     ) -> tuple[str, str | None, int | None, int | None, int | None]:
         """Stream chunks; return (text, reasoning_text, prompt_tokens,
         completion_tokens, reasoning_tokens).
@@ -250,6 +275,24 @@ class KimiApiBackend(Backend):
         Token counts come back in the final usage chunk; reasoning_content may
         be present if the server emits CoT (mirroring DeepSeek's pattern).
         """
+        # Multimodal content construction: when image_paths present, build
+        # OpenAI-compatible content array; otherwise plain string content.
+        if image_paths:
+            import base64
+            import mimetypes
+            content_parts = [{"type": "text", "text": prompt}]
+            for p in image_paths:
+                data_bytes = Path(p).read_bytes()
+                data_b64 = base64.b64encode(data_bytes).decode("ascii")
+                mime = mimetypes.guess_type(str(p))[0] or "image/png"
+                content_parts.append({
+                    "type": "image_url",
+                    "image_url": {"url": f"data:{mime};base64,{data_b64}"}
+                })
+            user_message = {"role": "user", "content": content_parts}
+        else:
+            user_message = {"role": "user", "content": prompt}
+
         chunks: list[str] = []
         reasoning_chunks: list[str] = []
         prompt_tokens: int | None = None
@@ -257,7 +300,7 @@ class KimiApiBackend(Backend):
         reasoning_tokens: int | None = None
         create_kwargs: dict[str, Any] = {
             "model": model,
-            "messages": [{"role": "user", "content": prompt}],
+            "messages": [user_message],
             "max_tokens": max_tokens,
             "temperature": temperature,
             "stream": True,

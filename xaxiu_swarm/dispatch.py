@@ -88,6 +88,7 @@ async def dispatch_async(
     audit_name: str | None = None,
     audit_max_len: int | None = None,
     deliverable_path: str | Path | None = None,
+    image_paths: list[Path] | None = None,
     auto_deliverable: bool = True,
     progress_interval_s: float = 0,
     **kwargs: Any,
@@ -166,6 +167,7 @@ async def dispatch_async(
             prompt,
             packet_path=packet_path,
             timeout=timeout,
+            image_paths=image_paths,
             **kwargs,
         )
     finally:
@@ -254,6 +256,7 @@ def dispatch(
     audit_name: str | None = None,
     audit_max_len: int | None = None,
     deliverable_path: str | Path | None = None,
+    image_paths: list[Path] | None = None,
     auto_deliverable: bool = True,
     progress_interval_s: float = 0,
     **kwargs: Any,
@@ -269,6 +272,7 @@ def dispatch(
             audit_name=audit_name,
             audit_max_len=audit_max_len,
             deliverable_path=deliverable_path,
+            image_paths=image_paths,
             auto_deliverable=auto_deliverable,
             progress_interval_s=progress_interval_s,
             **kwargs,
