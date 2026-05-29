@@ -8,7 +8,9 @@ Public API:
 Backends: "kimi" (subprocess CLI), "kimi-api" (Kimi Coding API HTTP — recommended
           for orchestrator dispatch; UA-gated to claude-code/0.1.0),
           "deepseek" (HTTP API), "qwen" (HTTP API),
-          "claude" (HTTP API; optional install: pip install xaxiu-swarm[claude]).
+          "claude" (HTTP API; optional install: pip install xaxiu-swarm[claude]),
+          "opencode" / "mimo" (local opencode CLI agent driving the Xiaomi MiMo
+          OpenAI-compatible API; needs the opencode binary + MIMO_API_KEY).
 """
 
 from xaxiu_swarm.backends.base import Backend, DispatchResult
@@ -18,7 +20,7 @@ from xaxiu_swarm.swarm import swarm
 from xaxiu_swarm.worktree import worktree_swarm
 from xaxiu_swarm.ag1 import ag1_meta_review, build_ag1_prompt, DEFAULT_VERIFICATION_CLAUSE
 
-__version__ = "0.3.3"
+__version__ = "0.4.0"
 
 __all__ = [
     "Backend",

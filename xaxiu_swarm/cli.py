@@ -34,14 +34,14 @@ if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
 def _build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="xaxiu-swarm",
-        description="Multi-provider agent swarm: Kimi CLI + DeepSeek + Qwen + Claude.",
+        description="Multi-provider agent swarm: Kimi CLI + Kimi API + DeepSeek + Qwen + Claude + OpenCode/MiMo.",
     )
     sub = p.add_subparsers(dest="cmd", required=True)
 
     # dispatch
     pd = sub.add_parser("dispatch", help="Run one agent.")
     pd.add_argument("target", help="Path to packet (.md/.txt) OR raw prompt string.")
-    pd.add_argument("--backend", default="kimi", help="kimi|deepseek|qwen|claude")
+    pd.add_argument("--backend", default="kimi", help="kimi|kimi-api|deepseek|qwen|claude|opencode")
     pd.add_argument("--model", default=None)
     pd.add_argument("--timeout", type=int, default=1800)
     pd.add_argument("--max-iterations", type=int, default=20)

@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "xaxiu-swarm"
-version = "0.3.3"
-description = "Multi-provider agent swarm orchestration: Kimi CLI + Kimi Coding API + DeepSeek + Qwen + Claude. asyncio.gather + git worktree isolation, pre-authored packets, AG#1 source-trace meta-review. v0.3.3 adds --no-thinking opt-out for DeepSeek v4-* thinking-mode (harmful on long-input grep tasks per the V_HOTFIX_1 A4 ramp test). See CHANGELOG for the full version history."
+version = "0.4.0"
+description = "Multi-provider agent swarm orchestration: Kimi CLI + Kimi Coding API + DeepSeek + Qwen + Claude + OpenCode/MiMo. asyncio.gather + git worktree isolation, pre-authored packets, AG#1 source-trace meta-review. v0.4.0 adds an OpenCode CLI backend driving the Xiaomi MiMo OpenAI-compatible API (auto-generated provider config; MIMO_API_KEY sharding). See CHANGELOG for the full version history."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }

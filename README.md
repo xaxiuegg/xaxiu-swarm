@@ -1,6 +1,6 @@
 # xaxiu-swarm
 
-Multi-provider parallel agent dispatch with `asyncio.gather` + git worktree isolation. **Pre-authored packets only**, no auto-decomposition. Three primitives: `dispatch` / `swarm` / `worktree_swarm`. Four backends: Kimi CLI (subscription, zero marginal), DeepSeek (paid HTTP), Qwen (paid HTTP), Claude (premium, optional). Plus `ag1_meta_review` for cross-engine adjudication with source-trace baked in.
+Multi-provider parallel agent dispatch with `asyncio.gather` + git worktree isolation. **Pre-authored packets only**, no auto-decomposition. Three primitives: `dispatch` / `swarm` / `worktree_swarm`. Backends: Kimi CLI (subscription, zero marginal), Kimi Coding API (HTTP), DeepSeek (paid HTTP), Qwen (paid HTTP), Claude (premium, optional), and OpenCode driving the Xiaomi MiMo API (local CLI agent). Plus `ag1_meta_review` for cross-engine adjudication with source-trace baked in.
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -103,11 +103,43 @@ ag1_result = asyncio.run(ag1_meta_review(
 | Name | Cost | Concurrency cap (practical) | Auth env var |
 |---|---|---|---|
 | `kimi` | Subscription (zero marginal) | 5–10 local | (uses Kimi CLI; needs `kimi login`) |
+| `kimi-api` | Subscription (quota) | 50+ via API | `KIMI_API_KEY` (Kimi Coding API; UA-gated) |
 | `deepseek` | Pay-per-token | 50+ via API | `DEEPSEEK_API_KEY`; honors `DEEPSEEK_MODEL` env (default `deepseek-chat`) |
 | `qwen` | Pay-per-token | 50+ via API | `QWEN_API_KEY` or `OPENROUTER_API_KEY`; honors `QWEN_MODEL` env |
 | `claude` | Premium (paid) | Anthropic rate limits | `ANTHROPIC_API_KEY`; optional install |
+| `opencode` (alias `mimo`) | Pay-per-token (MiMo) | 5–10 local CLI | `MIMO_API_KEY`; honors `MIMO_MODEL` env (default `mimo-v2.5-pro`); needs `opencode` on PATH |
 
 Custom backends: subclass `xaxiu_swarm.Backend` and pass an instance directly to dispatch/swarm.
+
+### OpenCode (Xiaomi MiMo)
+
+`opencode` (https://opencode.ai) is a terminal AI coding agent. This backend runs it
+non-interactively (`opencode run`) against the **Xiaomi MiMo** API (OpenAI-compatible at
+`https://api.xiaomimimo.com/v1`). Like Kimi it is a *filesystem-capable agent* — hand it a
+packet and it executes the work order, writing deliverables via its own tools (so it is not
+auto-written to a deliverable path like the pure-HTTP backends).
+
+```bash
+# One-time: install opencode + wire the MiMo provider config + warm up
+bash scripts/install_opencode.sh
+export MIMO_API_KEY=sk-...        # pay-as-you-go (sk-…) or Token Plan (tp-…) key
+
+# Single dispatch
+xaxiu-swarm dispatch packet.md --backend opencode
+
+# Pick a model (bare id is auto-qualified to mimo/<id>); or set MIMO_MODEL
+xaxiu-swarm dispatch packet.md --backend opencode --model mimo-v2.5
+
+# In a mixed cohort
+xaxiu-swarm swarm a.md b.md c.md --backends opencode,kimi,deepseek
+```
+
+The backend **auto-generates** the opencode provider config (so you don't have to), storing
+`"apiKey": "{env:MIMO_API_KEY}"` rather than a literal secret and selecting a key per dispatch
+from `MIMO_API_KEY` / `MIMO_API_KEYS` (sharding parity with the other HTTP backends). Point it
+at your own config with `OPENCODE_CONFIG=/path/to/opencode.json` if you'd rather manage it
+yourself. Relevant env: `MIMO_BASE_URL` (Token-Plan CN: `https://token-plan-cn.xiaomimimo.com/v1`),
+`OPENCODE_BIN`, `OPENCODE_SKIP_PERMISSIONS`.
 
 ## Hybrid tier strategy
 

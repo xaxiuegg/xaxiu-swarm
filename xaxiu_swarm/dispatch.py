@@ -19,7 +19,9 @@ from xaxiu_swarm.backends.base import Backend, DispatchResult
 
 # G17: backends without filesystem write capability. dispatch() auto-writes
 # their response.text to the deliverable path parsed from the packet (or to
-# an explicit deliverable_path kwarg).
+# an explicit deliverable_path kwarg). Filesystem-capable agents (kimi,
+# opencode) are intentionally excluded — they self-write deliverables via their
+# own tools per the packet's PD#26 instructions.
 API_BACKENDS = {"deepseek", "qwen", "claude"}
 
 # G17: regex patterns to extract the deliverable path from a packet's body.
