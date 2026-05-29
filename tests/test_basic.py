@@ -651,3 +651,276 @@ def test_g32_ag1_meta_review_no_source_trace_clause(tmp_path):
         audit_dir=tmp_path / "audit",
     ))
     assert "Source-trace verification" not in CapturingBackend.captured["prompt"]
+
+
+# ----- v0.4.0 OpenCode / MiMo backend tests -----
+
+
+def test_opencode_registered():
+    """OpenCode is in the registry under 'opencode' and the 'mimo' alias."""
+    from xaxiu_swarm.backends import list_backends, get_backend
+
+    assert "opencode" in list_backends()
+    assert "mimo" in list_backends()
+    assert get_backend("opencode").name == "opencode"
+    assert get_backend("mimo").name == "opencode"  # alias resolves to same backend
+
+
+def test_opencode_not_in_api_backends():
+    """OpenCode is filesystem-capable (self-writes via tools), so it must NOT be
+    in API_BACKENDS — dispatch() should never auto-write its stdout."""
+    from xaxiu_swarm.dispatch import API_BACKENDS
+
+    assert "opencode" not in API_BACKENDS
+
+
+def test_opencode_default_model(monkeypatch, tmp_path):
+    """Default model is the qualified mimo/mimo-v2.5-pro."""
+    from xaxiu_swarm.backends.opencode import OpenCodeBackend
+
+    monkeypatch.delenv("MIMO_MODEL", raising=False)
+    be = OpenCodeBackend(config_path=tmp_path / "oc.json")
+    assert be.default_model == "mimo/mimo-v2.5-pro"
+
+
+def test_opencode_reads_env_model(monkeypatch, tmp_path):
+    """MIMO_MODEL env is honored and auto-qualified with the provider prefix."""
+    from xaxiu_swarm.backends.opencode import OpenCodeBackend
+
+    monkeypatch.setenv("MIMO_MODEL", "mimo-v2.5")
+    be = OpenCodeBackend(config_path=tmp_path / "oc.json")
+    assert be.default_model == "mimo/mimo-v2.5"
+
+
+def test_opencode_explicit_model_overrides_env(monkeypatch, tmp_path):
+    """Explicit model arg beats MIMO_MODEL env."""
+    from xaxiu_swarm.backends.opencode import OpenCodeBackend
+
+    monkeypatch.setenv("MIMO_MODEL", "mimo-v2.5")
+    be = OpenCodeBackend(model="mimo-v2-flash", config_path=tmp_path / "oc.json")
+    assert be.default_model == "mimo/mimo-v2-flash"
+
+
+def test_opencode_qualify_model_passthrough(tmp_path):
+    """A fully-qualified provider/model is used as-is; a bare id gets the prefix."""
+    from xaxiu_swarm.backends.opencode import OpenCodeBackend
+
+    be = OpenCodeBackend(config_path=tmp_path / "oc.json")
+    assert be._qualify_model("mimo-v2.5-pro") == "mimo/mimo-v2.5-pro"
+    assert be._qualify_model("anthropic/claude-sonnet") == "anthropic/claude-sonnet"
+
+
+def test_opencode_base_url_env(monkeypatch, tmp_path):
+    """MIMO_BASE_URL env overrides the default endpoint (e.g. Token-Plan CN)."""
+    from xaxiu_swarm.backends.opencode import OpenCodeBackend
+
+    monkeypatch.setenv("MIMO_BASE_URL", "https://token-plan-cn.xiaomimimo.com/v1")
+    be = OpenCodeBackend(config_path=tmp_path / "oc.json")
+    assert be.base_url == "https://token-plan-cn.xiaomimimo.com/v1"
+    assert be._config_dict()["provider"]["mimo"]["options"]["baseURL"] == (
+        "https://token-plan-cn.xiaomimimo.com/v1"
+    )
+
+
+def test_opencode_api_key_selection(monkeypatch):
+    """Key precedence: explicit > MIMO_API_KEYS pool > MIMO_API_KEY single."""
+    from xaxiu_swarm.backends.opencode import _select_api_key
+
+    monkeypatch.delenv("MIMO_API_KEYS", raising=False)
+    monkeypatch.delenv("MIMO_API_KEY", raising=False)
+    assert _select_api_key(None) is None
+    assert _select_api_key("explicit-key") == "explicit-key"
+
+    monkeypatch.setenv("MIMO_API_KEY", "single-key")
+    assert _select_api_key(None) == "single-key"
+    assert _select_api_key("explicit-key") == "explicit-key"  # explicit still wins
+
+    monkeypatch.setenv("MIMO_API_KEYS", "k1,k2,k3")
+    for _ in range(20):
+        assert _select_api_key(None) in {"k1", "k2", "k3", "single-key"}
+
+
+def test_opencode_config_dict_uses_env_substitution(tmp_path):
+    """Generated config references the key via {env:MIMO_API_KEY} — no secret on disk."""
+    from xaxiu_swarm.backends.opencode import OpenCodeBackend
+
+    be = OpenCodeBackend(config_path=tmp_path / "oc.json")
+    cfg = be._config_dict()
+    mimo = cfg["provider"]["mimo"]
+    assert mimo["npm"] == "@ai-sdk/openai-compatible"
+    assert mimo["options"]["apiKey"] == "{env:MIMO_API_KEY}"
+    assert "mimo-v2.5-pro" in mimo["models"]
+
+
+def test_opencode_generates_managed_config(monkeypatch):
+    """With no explicit config_path / OPENCODE_CONFIG, a managed config is written."""
+    import json
+    from xaxiu_swarm.backends.opencode import OpenCodeBackend
+
+    monkeypatch.delenv("OPENCODE_CONFIG", raising=False)
+    be = OpenCodeBackend()
+    assert be._own_config is True
+    assert be.config_path.exists()
+    cfg = json.loads(be.config_path.read_text(encoding="utf-8"))
+    assert "mimo" in cfg["provider"]
+
+
+def test_opencode_honors_env_config(monkeypatch, tmp_path):
+    """OPENCODE_CONFIG env points the backend at a user-managed config (no generation)."""
+    from xaxiu_swarm.backends.opencode import OpenCodeBackend
+
+    user_cfg = tmp_path / "my-opencode.json"
+    monkeypatch.setenv("OPENCODE_CONFIG", str(user_cfg))
+    be = OpenCodeBackend()
+    assert be._own_config is False
+    assert be.config_path == user_cfg
+    assert not user_cfg.exists()  # we did NOT write it
+
+
+def test_opencode_build_command(tmp_path):
+    """Command includes run, -m model, --format json, skip-permissions, message last."""
+    from xaxiu_swarm.backends.opencode import OpenCodeBackend
+
+    be = OpenCodeBackend(config_path=tmp_path / "oc.json", skip_permissions=True)
+    cmd = be._build_command("THE MESSAGE", "mimo/mimo-v2.5-pro", [])
+    assert cmd[1] == "run"
+    assert "-m" in cmd and cmd[cmd.index("-m") + 1] == "mimo/mimo-v2.5-pro"
+    assert "--format" in cmd and cmd[cmd.index("--format") + 1] == "json"
+    assert "--dangerously-skip-permissions" in cmd
+    assert cmd[-1] == "THE MESSAGE"
+
+
+def test_opencode_build_command_no_skip_permissions(tmp_path):
+    """skip_permissions=False omits the dangerous flag."""
+    from xaxiu_swarm.backends.opencode import OpenCodeBackend
+
+    be = OpenCodeBackend(config_path=tmp_path / "oc.json", skip_permissions=False)
+    cmd = be._build_command("msg", "mimo/mimo-v2.5-pro", [])
+    assert "--dangerously-skip-permissions" not in cmd
+
+
+def test_opencode_build_command_attaches_files_after_message(tmp_path):
+    """Attached files (images) are passed via repeated -f AFTER the message — the
+    -f array option would otherwise swallow a trailing positional message."""
+    from xaxiu_swarm.backends.opencode import OpenCodeBackend
+
+    be = OpenCodeBackend(config_path=tmp_path / "oc.json")
+    files = [tmp_path / "a.png", tmp_path / "b.png"]
+    cmd = be._build_command("THE MESSAGE", "mimo/mimo-v2.5-pro", files)
+    msg_idx = cmd.index("THE MESSAGE")
+    f_idxs = [i for i, t in enumerate(cmd) if t == "-f"]
+    assert len(f_idxs) == 2
+    assert msg_idx < min(f_idxs), "message must come before any -f flag"
+    attached = {cmd[i + 1] for i in f_idxs}
+    assert str(files[0]) in attached and str(files[1]) in attached
+
+
+def test_opencode_message_references_packet_by_path(tmp_path):
+    """Packet is cited by absolute path in the message (NOT via -f, whose array
+    option would swallow the trailing positional message)."""
+    from xaxiu_swarm.backends.opencode import OpenCodeBackend
+
+    pkt = tmp_path / "packet.md"
+    msg = OpenCodeBackend._build_message("", pkt, [])
+    assert str(pkt) in msg
+    assert "authoritative work order" in msg
+    # The image-only attach list means the command never -f's the packet.
+    be = OpenCodeBackend(config_path=tmp_path / "oc.json")
+    cmd = be._build_command(msg, "mimo/mimo-v2.5-pro", [])  # no images
+    assert "-f" not in cmd
+    assert cmd[-1] == msg
+
+
+def test_opencode_message_references_context_files(tmp_path):
+    """Context files are cited by path for both packet and raw-prompt dispatches."""
+    from xaxiu_swarm.backends.opencode import OpenCodeBackend
+
+    ctx = [tmp_path / "v_src.html", tmp_path / "spec.md"]
+    # raw prompt + context
+    m1 = OpenCodeBackend._build_message("do the thing", None, ctx)
+    assert "do the thing" in m1
+    assert all(str(c) in m1 for c in ctx)
+    # packet + context
+    m2 = OpenCodeBackend._build_message("", tmp_path / "p.md", ctx)
+    assert all(str(c) in m2 for c in ctx)
+
+
+def test_opencode_skip_permissions_env(monkeypatch, tmp_path):
+    """OPENCODE_SKIP_PERMISSIONS env: default on; '0'/'false' turns it off."""
+    from xaxiu_swarm.backends.opencode import OpenCodeBackend
+
+    monkeypatch.delenv("OPENCODE_SKIP_PERMISSIONS", raising=False)
+    assert OpenCodeBackend(config_path=tmp_path / "a.json").skip_permissions is True
+
+    monkeypatch.setenv("OPENCODE_SKIP_PERMISSIONS", "0")
+    assert OpenCodeBackend(config_path=tmp_path / "b.json").skip_permissions is False
+
+    monkeypatch.setenv("OPENCODE_SKIP_PERMISSIONS", "false")
+    assert OpenCodeBackend(config_path=tmp_path / "c.json").skip_permissions is False
+
+
+def test_opencode_extract_json_text():
+    """JSON event stream → concatenated assistant text; non-JSON noise ignored."""
+    from xaxiu_swarm.backends.opencode import OpenCodeBackend
+
+    stream = (
+        "Performing one time database migration...\n"   # non-JSON banner, ignored
+        '{"type":"text","text":"Hello "}\n'
+        '{"type":"step-start"}\n'
+        '{"part":{"type":"text","text":"world"}}\n'      # nested text part
+        '{"type":"tool","input":{"text":"DO NOT CAPTURE THIS"}}\n'  # not a text part
+    )
+    text, err = OpenCodeBackend._extract_json(stream)
+    assert err is None
+    assert text == "Hello world"
+    assert "DO NOT CAPTURE" not in text
+
+
+def test_opencode_extract_json_error_event():
+    """A {"type":"error",...} event is surfaced as the error message, response empty.
+
+    Uses the real shape observed from opencode 1.x (APIError / data.message / statusCode).
+    """
+    from xaxiu_swarm.backends.opencode import OpenCodeBackend
+
+    stream = (
+        '{"type":"error","error":{"name":"APIError",'
+        '"data":{"message":"Forbidden: Host not in allowlist","statusCode":403}}}'
+    )
+    text, err = OpenCodeBackend._extract_json(stream)
+    assert text == ""  # error JSON is not echoed as a response
+    assert err is not None
+    assert "Forbidden" in err and "403" in err
+
+
+def test_opencode_missing_key_fails_without_spawn(monkeypatch, tmp_path):
+    """No MIMO key → failed DispatchResult, returned before any subprocess spawn."""
+    import asyncio
+    from xaxiu_swarm.backends.opencode import OpenCodeBackend
+
+    monkeypatch.delenv("MIMO_API_KEY", raising=False)
+    monkeypatch.delenv("MIMO_API_KEYS", raising=False)
+    # Point at a non-existent binary to prove we never try to run it.
+    be = OpenCodeBackend(
+        config_path=tmp_path / "oc.json",
+        opencode_path=str(tmp_path / "no-such-opencode"),
+    )
+    res = asyncio.run(be.dispatch_async("hi", timeout=5))
+    assert res.status == "failed"
+    assert "MIMO_API_KEY not set" in (res.error or "")
+
+
+def test_opencode_binary_not_found_fails_cleanly(monkeypatch, tmp_path):
+    """Missing opencode binary → failed result with an install hint (never raises)."""
+    import asyncio
+    from xaxiu_swarm.backends.opencode import OpenCodeBackend
+
+    monkeypatch.setenv("MIMO_API_KEY", "sk-test")
+    be = OpenCodeBackend(
+        config_path=tmp_path / "oc.json",
+        opencode_path=str(tmp_path / "definitely-not-here"),
+    )
+    res = asyncio.run(be.dispatch_async("hi", timeout=5))
+    assert res.status == "failed"
+    assert "opencode binary not found" in (res.error or "")
+    assert "install" in (res.error or "").lower()

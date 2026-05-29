@@ -5,6 +5,23 @@ All notable changes to this project are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 This project follows [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] — 2026-05-29
+
+### Added
+- **OpenCode CLI backend (`opencode`, alias `mimo`) driving the Xiaomi MiMo API.** New `xaxiu_swarm.backends.opencode.OpenCodeBackend` shells out to the [opencode](https://opencode.ai) terminal agent in non-interactive `run` mode and, by default, points it at the **Xiaomi MiMo** OpenAI-compatible API (`https://api.xiaomimimo.com/v1`). Like the Kimi CLI backend it is a *filesystem-capable agent* — it executes a dispatch packet and self-writes deliverables via its own tools, so it is intentionally **not** in `dispatch.API_BACKENDS` (no auto-write of stdout). Usable everywhere the registry is: `--backend opencode` on `dispatch` / `swarm` / `wt-swarm`, or in a mixed cohort (`--backends opencode,kimi,deepseek`).
+- **Auto-generated opencode provider config.** The backend writes a managed `opencode.json` defining a `@ai-sdk/openai-compatible` `mimo` provider with `"apiKey": "{env:MIMO_API_KEY}"` (no secret on disk) and points opencode at it via `OPENCODE_CONFIG`. Supply your own config instead by setting `OPENCODE_CONFIG` (or `config_path=`) and the backend uses it verbatim.
+- **MiMo multi-key sharding.** `MIMO_API_KEY` (single) and `MIMO_API_KEYS` (CSV pool) are honored with the same precedence/`random.choice` pool logic as the DeepSeek / Kimi-API backends; the per-dispatch key is injected into the subprocess env that the config's `{env:MIMO_API_KEY}` resolves against.
+- **`scripts/install_opencode.sh`** — installs the `opencode` binary (npm → curl → bun), merges the MiMo provider into the global `~/.config/opencode/opencode.json` *without clobbering* existing settings, and warms up opencode's one-time DB migration so non-interactive runs produce clean stdout.
+- **`examples/opencode_mimo_dispatch.py`** — single dispatch + a cross-engine cohort example.
+
+### Env vars
+`MIMO_API_KEY` / `MIMO_API_KEYS`, `MIMO_BASE_URL` (default `https://api.xiaomimimo.com/v1`; Token-Plan CN: `https://token-plan-cn.xiaomimimo.com/v1`), `MIMO_MODEL` (default `mimo-v2.5-pro`; bare ids auto-qualified to `mimo/<id>`), `OPENCODE_CONFIG`, `OPENCODE_BIN`, `OPENCODE_SKIP_PERMISSIONS`.
+
+### Notes
+- **Exit code is not authoritative for opencode.** opencode exits `0` even when the underlying API call fails (e.g. HTTP 403). The backend therefore defaults to `--format json` and parses the event stream both for the assistant text *and* for `{"type":"error",...}` events, surfacing the latter as a `failed` `DispatchResult` with a clean message. Switch to `output_format="default"` for verbatim stdout capture (no error-event detection).
+- **Permissions.** Non-interactive codemod packets need tool access, so the backend passes `--dangerously-skip-permissions` by default (parity with the Kimi backend's implicit `--yolo`). Set `OPENCODE_SKIP_PERMISSIONS=0` to force interactive prompting.
+- Builds on the multi-API-key sharding + swarm-per-worker work landed since 0.3.3.
+
 ## [0.3.3] — 2026-05-07
 
 ### Added

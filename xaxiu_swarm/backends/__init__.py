@@ -10,6 +10,10 @@ Built-in backends:
     "deepseek" — OpenAI-compat HTTP API (paid per token; ~$0.27/M in)
     "qwen"     — OpenAI-compat HTTP API (paid; via OpenRouter or DashScope)
     "claude"   — Anthropic SDK (premium; lazy import — install: xaxiu-swarm[claude])
+    "opencode" — local opencode CLI subprocess (https://opencode.ai) driving the
+                 Xiaomi MiMo API by default (OpenAI-compat at api.xiaomimimo.com).
+                 Filesystem-capable agent like Kimi; needs the opencode binary on
+                 PATH + MIMO_API_KEY. Auto-generates the opencode provider config.
 
 Custom backends: subclass xaxiu_swarm.backends.base.Backend and pass instance
 directly to dispatch/swarm. The string registry is for convenience only.
@@ -53,12 +57,19 @@ def _claude_factory() -> Backend:
     return ClaudeBackend()
 
 
+def _opencode_factory() -> Backend:
+    from xaxiu_swarm.backends.opencode import OpenCodeBackend
+    return OpenCodeBackend()
+
+
 _register("kimi", _kimi_factory)
 _register("kimi-api", _kimi_api_factory)
 _register("kimi_api", _kimi_api_factory)  # alias for shells that don't quote hyphens
 _register("deepseek", _deepseek_factory)
 _register("qwen", _qwen_factory)
 _register("claude", _claude_factory)
+_register("opencode", _opencode_factory)
+_register("mimo", _opencode_factory)  # alias: opencode's default provider is MiMo
 
 
 def get_backend(name: str | Backend) -> Backend:
